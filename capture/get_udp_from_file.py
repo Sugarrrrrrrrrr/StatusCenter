@@ -18,7 +18,7 @@ def inet_to_str(inet): #转换ip地址为字符串
         return socket.inet_ntop(socket.AF_INET6, inet)
 
 
-def main_dev():
+def get_udp_from_dev():
     devs = pcap.findalldevs()
     pc = pcap.pcap(devs[3])
     pc.setfilter('udp port 54915')    #设置监听过滤器,这里指定ip
@@ -41,7 +41,7 @@ def main_dev():
 (inet_to_str(ip.src),inet_to_str(ip.dst), ip.len, ip.ttl, do_not_fragment, more_fragments,fragment_offset))
   
 
-def udp_data_from_file(ip_list, port):
+def get_udp_from_file(ip_list, port):
     with open('../data/test.pcap','rb') as file:
         pcap = dpkt.pcap.Reader(file)
         # pcap.setfilter('udp port 14550')

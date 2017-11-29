@@ -1,7 +1,7 @@
 import sys
 sys.path.append('..')
 
-from capture.udp_data_from_file import udp_data_from_file
+from capture.get_udp_from_file import get_udp_from_file
 
 
 def get_msgid(mavlink):
@@ -9,11 +9,11 @@ def get_msgid(mavlink):
         return mavlink[5]
 
 
-def mavlink_from_udp(ip_list, port):
+def get_mavlink_from_udp(ip_list, port):
 
     buf = b''
 
-    for data in udp_data_from_file(ip_list, port):
+    for data in get_udp_from_file(ip_list, port):
 
         mavlink = b''
         buf += data
