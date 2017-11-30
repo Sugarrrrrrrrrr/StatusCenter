@@ -41,8 +41,8 @@ def get_udp_from_dev():
 (inet_to_str(ip.src),inet_to_str(ip.dst), ip.len, ip.ttl, do_not_fragment, more_fragments,fragment_offset))
   
 
-def get_udp_from_file(ip_list, port):
-    with open('../data/test.pcap','rb') as file:
+def get_udp_from_file(filename='../data/test.pcap', ip_list=['192.168.1.4'], port=14550):
+    with open(filename,'rb') as file:
         pcap = dpkt.pcap.Reader(file)
         # pcap.setfilter('udp port 14550')
         for ts, buf in pcap:

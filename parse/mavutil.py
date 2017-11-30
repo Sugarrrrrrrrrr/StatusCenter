@@ -1068,9 +1068,6 @@ class mavlogfile(mavfile):
     def close(self):
         self.f.close()
 
-    def bytes_needed(self):
-        pass
-
     def recv(self,n=None):
         if n is None:
             n = self.mav.bytes_needed()
@@ -1109,6 +1106,60 @@ class mavlogfile(mavfile):
         if msg.get_type() != "BAD_DATA":
             self._last_timestamp = msg._timestamp
         msg._link = self._link
+
+
+class mavpcapfile(mavfile):
+    '''a MAVLink logfile reader/writer'''
+    def __init__(self, filename, planner_format=None,
+                 write=False, append=False,
+                 robust_parsing=True, notimestamps=False, source_system=255, use_native=default_native,
+                 ip_list=['192.168.1.4'], port=14550):
+        self.filename = filename
+        self.writeable = write
+        self.robust_parsing = robust_parsing
+        self.planner_format = planner_format
+        self._two64 = math.pow(2.0, 63)
+        self.ip_list = ip_list
+        self.port = port
+
+        mode = 'rb'
+        if self.writeable:
+            if append:
+                mode = 'ab'
+            else:
+                mode = 'wb'
+
+        sys.path.append('..')
+        from capture.udp_file import PcapFile
+        self.f = PcapFile(filename=self.filename, ip_list=self.ip_list, port=self.port)
+        self.filesize = os.path.getsize(filename)
+        self.percent = 0
+        mavfile.__init__(self, None, filename, source_system=source_system, notimestamps=notimestamps, use_native=use_native)
+        if self.notimestamps:
+            self._timestamp = 0
+        else:
+            self._timestamp = time.time()
+        self.stop_on_EOF = True
+        self._last_message = None
+        self._last_timestamp = None
+        self._link = 0
+
+    def close(self):
+        self.f.close()
+
+    def recv(self,n=None):
+        if n is None:
+            n = self.mav.bytes_needed()
+        return self.f.read(n)
+
+    def write(self, buf):
+        self.f.write(buf)
+
+    def pre_message(self):
+        pass
+
+    def post_message(self, msg):
+        pass
 
 
 class mavmemlog(mavfile):
@@ -1212,7 +1263,11 @@ def mavlink_connection(device, baud=115200, source_system=255,
         if DFReader.DFReader_is_text_log(device):
             m = DFReader.DFReader_text(device, zero_time_base=zero_time_base)
             mavfile_global = m
-            return m    
+            return m
+
+    if device.endswith('.pcap'):
+        # support dataflash text logs
+        return mavpcapfile(filename=device, ip_list=['192.168.1.4'], port=14550)
 
     # list of suffixes to prevent setting DOS paths as UDP sockets
     logsuffixes = ['mavlink', 'log', 'raw', 'tlog' ]
