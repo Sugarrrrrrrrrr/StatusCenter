@@ -2,9 +2,10 @@ import sys
 sys.path.append('..')
 
 
-from mavlink_from_udp import mavlink_from_udp, get_msgid
-from mavprotocol import MAVLink, MAVError
+from get_mavlink_from_udp import get_mavlink_from_udp, get_msgid
+#from mavprotocol import MAVLink, MAVError
 from mavparse import MAVParseError
+from dialects.v10.ardupilotmega import *
 
 
 def main():
@@ -17,46 +18,39 @@ def main():
     lon = None
     alt = None
 
-    for i, mavlink in enumerate(mavlink_from_udp(ip_list, port)):
-        if get_msgid(mavlink) == 24:
+    for i, mavlink in enumerate(get_mavlink_from_udp(ip_list, port)):
+        #if get_msgid(mavlink) == 24:
             try:
                 m = MAV.decode(mavlink)
-            except MAVParseError as e:
+            except MAVError as e:
                 print(i, mavlink)
                 print(type(e), ':', e)
-                input()
-            except Exception as e:
-                print(type(e), ':', e)
-                input()
-            
+                print('-------------')
+                #input()
+                continue
+            #except Exception as e:
+                #print(type(e), ':', e)
+                #print('-------------')
+                #input()
+                #continue
 
-            change = False
-
-            if lat!=m.lat:
-                print('lat change')
-                change = True
-                lat = m.lat
-            if lon!=m.lon:
-                print('lon change')
-                change = True
-                lon = m.lon
-            if alt!=m.alt:
-                print('alt change')
-                change = True
-                alt = m.alt
-
-            if change:
-                input()
-                change = False
+            print(i, m.get_msgId(), m.get_type())
                 
 
             for fieldname in m.fieldnames:
                 exec('print(\'%s:\', m.%s)' % (fieldname, fieldname))
+
+            print('-------------')
 
             #input()
 
 
 if __name__ == '__main__':
 
-    main()
-        
+    ip_list = ['192.168.1.4']
+    port = 14550
+    MAV = MAVLink(None)
+    mavlinks = get_mavlink_from_udp(ip_list, port)
+
+    mavlink = MAV.decode(next(mavlinks))
+
