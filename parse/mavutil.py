@@ -79,22 +79,22 @@ def set_dialect(dialect):
     For example, set_dialect("ardupilotmega")
     '''
     global mavlink, current_dialect
-    import mavparse
+    import generator.mavparse
     if 'MAVLINK20' in os.environ:
-        wire_protocol = mavparse.PROTOCOL_2_0
-        modname = "pymavlink.dialects.v20." + dialect
+        wire_protocol = generator.mavparse.PROTOCOL_2_0
+        modname = "dialects.v20." + dialect
     elif mavlink is None or mavlink.WIRE_PROTOCOL_VERSION == "1.0" or not 'MAVLINK09' in os.environ:
-        wire_protocol = mavparse.PROTOCOL_1_0
+        wire_protocol = generator.mavparse.PROTOCOL_1_0
         modname = "dialects.v10." + dialect
     else:
-        wire_protocol = mavparse.PROTOCOL_0_9
-        modname = "pymavlink.dialects.v09." + dialect
+        wire_protocol = generator.mavparse.PROTOCOL_0_9
+        modname = "dialects.v09." + dialect
 
     try:
         mod = __import__(modname)
     except Exception:
         # auto-generate the dialect module
-        from .generator.mavgen import mavgen_python_dialect
+        from generator.mavgen import mavgen_python_dialect
         mavgen_python_dialect(dialect, wire_protocol)
         mod = __import__(modname)
     components = modname.split('.')
@@ -1093,7 +1093,30 @@ class mavlogfile(mavfile):
     def pre_message(self):
         '''read timestamp if needed'''
         # read the timestamp
-        pass
+        if self.filesize != 0:
+            self.percent = (100.0 * self.f.tell()) / self.filesize
+        if self.notimestamps:
+            return
+        if self.planner_format:
+            tbuf = self.f.read(21)
+            if len(tbuf) != 21 or tbuf[0] != '-' or tbuf[20] != ':':
+                raise RuntimeError('bad planner timestamp %s' % tbuf)
+            hnsec = self._two64 + float(tbuf[0:20])
+            t = hnsec * 1.0e-7         # convert to seconds
+            t -= 719163 * 24 * 60 * 60 # convert to 1970 base
+            self._link = 0
+        else:
+            tbuf = self.f.read(8)
+            if len(tbuf) != 8:
+                return
+            (tusec,) = struct.unpack('>Q', tbuf)
+            t = tusec * 1.0e-6
+            if (self._last_timestamp is not None and
+                self._last_message.get_type() == "BAD_DATA" and
+                abs(t - self._last_timestamp) > 3*24*60*60):
+                t = self.scan_timestamp(tbuf)
+            self._link = tusec & 0x3
+        self._timestamp = t
 
     def post_message(self, msg):
         '''add timestamp to message'''
@@ -1230,7 +1253,8 @@ def mavlink_connection(device, baud=115200, source_system=255,
                        planner_format=None, write=False, append=False,
                        robust_parsing=True, notimestamps=False, input=True,
                        dialect=None, autoreconnect=False, zero_time_base=False,
-                       retries=3, use_native=default_native):
+                       retries=3, use_native=default_native,
+                       ip_list=['192.168.1.4'], port=14550):
     '''open a serial, UDP, TCP or file mavlink connection'''
     global mavfile_global
 
@@ -1267,7 +1291,7 @@ def mavlink_connection(device, baud=115200, source_system=255,
 
     if device.endswith('.pcap'):
         # support dataflash text logs
-        return mavpcapfile(filename=device, ip_list=['192.168.1.4'], port=14550)
+        return mavpcapfile(filename=device, ip_list=ip_list, port=port)
 
     # list of suffixes to prevent setting DOS paths as UDP sockets
     logsuffixes = ['mavlink', 'log', 'raw', 'tlog' ]
