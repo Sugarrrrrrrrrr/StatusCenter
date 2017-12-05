@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <script type="text/javascript" src="qwebchannel.js"></script>
+    <title>QWebChannel����</title>
+    <script>
+        window.onload = function () {
+
+            new QWebChannel(qt.webChannelTransport, function (channel) {
+
+                channel.objects.pyjs.__signal1.connect(function () {
+                    alert("123456");
+                });
+
+                window.pyjs = channel.objects.pyjs;
+
+            });
+
+        };
+
+        function moveMarker() {
+            alert("moveMarker");
+        }
+
+    </script>
+</head>
+<body>
+    <h1>test</h1>
+    <button type="button", onclick="moveMarker()">click me!</button>
+</body>
+</html>
