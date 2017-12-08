@@ -1,8 +1,9 @@
-from PyQt5.QtCore import QUrl, QThread
+from PyQt5.QtCore import QUrl, QThread, QSizeF
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 import sys
+import time
 
 class scMap(QWidget):
     def __init__(self, parent=None):
@@ -12,6 +13,7 @@ class scMap(QWidget):
 
     def initUI(self):
         self.browser.load(QUrl("file:///map.html"))
+
         self.browser.show()
         self.app.exec_()
 
@@ -24,6 +26,7 @@ class scMap_t(QThread):
         self.app = QApplication(sys.argv)
         self.browser = QWebEngineView()
         self.browser.load(QUrl("file:///map.html"))
+        self.browser.setFixedSize(783, 616)
         self.browser.show()
 
     def run(self):
@@ -47,6 +50,10 @@ class scMap_t(QThread):
     def deleteMarker(self, name):
         pass
 
+    def setCenter(self, lat, lng):
+        js_str = """map.setCenter({lat: %f, lng: %f})""" % (lat, lng)
+        self.runJavaScript(js_str)
+
 
 class UAV():
     def __init__(self, sc_map, name, lat, lng, icon="bluecopter.png"):
@@ -66,13 +73,45 @@ class UAV():
 
     def delete(self):
         self.map.deleteMarker(self.name)
+
+def mov(sc_map, lat, lng):
+
+
+    uav1 = UAV(sc_map, "uav1", lat, lng)
+    uav2 = UAV(sc_map, "uav2", lat, lng)
+    uav3 = UAV(sc_map, "uav3", lat, lng)
+    uav4 = UAV(sc_map, "uav4", lat, lng)
+
+    for i in range(len(l[0])):
+        time.sleep(1)
+        uav1.move(l[0][i][0], l[0][i][1])
+        uav2.move(l[1][i][0], l[1][i][1])
+        uav3.move(l[2][i][0], l[2][i][1])
+        uav4.move(l[3][i][0], l[3][i][1])
+
+
         
 
 if __name__ == '__main__':
     sc_map = scMap_t()
 
-    lat = -25.363
-    lng = 131.044
+    lat = 39.9651391731
+    lng = 116.3420835823
+
+    l = [[(lat, lng)], [(lat, lng)], [(lat, lng)], [(lat, lng)]]
+    for i in range(1, 100):
+        l[0].append((l[0][i - 1][0] - 0.01, l[0][i - 1][1]))
+        l[1].append((l[1][i - 1][0] + 0.01, l[1][i - 1][1]))
+        l[2].append((l[2][i - 1][0], l[2][i - 1][1] - 0.01))
+        l[3].append((l[3][i - 1][0], l[3][i - 1][1] + 0.01))
+
+
+
+
+
+
+
+
 
     
 

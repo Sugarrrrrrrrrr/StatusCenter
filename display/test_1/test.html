@@ -2,7 +2,7 @@
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
-    <script type="text/javascript" src="qwebchannel.js"></script>
+    <script type="text/javascript" src="./qwebchannel.js"></script>
     <title>QWebChannel����</title>
     <script>
         window.onload = function () {
@@ -15,12 +15,17 @@
 
                 window.pyjs = channel.objects.pyjs;
 
+                channel.objects.pyjs._signal1.connect(function () {
+                    alert("_signal1")
+                })
+
             });
 
-        };
+        }
 
         function moveMarker() {
             alert("moveMarker");
+            pyjs._slot2()
         }
 
     </script>

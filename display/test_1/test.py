@@ -32,8 +32,6 @@ class SC(QWidget):
     def initUI(self):
 
         self.view = QWebEngineView(self)
-        url_string = "file:///test.html"
-        self.view.load(QUrl(url_string))
 
         self.channel = QWebChannel()
         self.handler = CallHandler()
@@ -49,13 +47,13 @@ class SC(QWidget):
         #b2 = QPushButton("b2", self)
         #b2.clicked.connect(self.s2s)
 
+        url_string = "file:///test.html"
+        self.view.load(QUrl(url_string))
         self.setGeometry(300, 300, 300, 220)
         self.show()
 
     def s1s(self):
         self.handler._signal1.emit("b1")
-        js_str = "alert(\"rjs\")"
-        self.view.page().runJavaScript(js_str)
 
     def s2s(self):
         self.handler._signal2.emit("b2")
@@ -68,5 +66,22 @@ class SC(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    sc = SC()
+
+    s = QWidget()
+    view = QWebEngineView(s)
+    channel = QWebChannel(view)
+    handler = CallHandler()
+    channel.registerObject('pyjs', handler)
+    handler._signal1.connect(handler._slot1)
+
+    view.page().setWebChannel(channel)
+
+    b1 = QPushButton("b1", s)
+    #b1.clicked.connect()
+
+    url_string = "file:///test.html"
+    view.load(QUrl(url_string))
+    s.setGeometry(300, 300, 300, 220)
+
+    s.show()
     sys.exit(app.exec_())
