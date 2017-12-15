@@ -7,18 +7,36 @@ import time
 
 class scMap(QWidget):
     def __init__(self, parent=None):
-        self.app = QApplication(sys.argv)
-        self.browser = QWebEngineView()
+        super().__init__(parent=parent)
+        self.browser = QWebEngineView(self)
         self.initUI()
 
     def initUI(self):
-        self.browser.load(QUrl("file:///map.html"))
-
-        self.browser.show()
-        self.app.exec_()
+        self.browser.load(QUrl("file:///display/map.html"))
+        self.browser.setFixedSize(783, 616)
+        self.show()
 
     def runJavaScript(self, js_str):
         self.browser.page().runJavaScript(js_str)
+
+    def createMarker(self, name, lat, lng, icon):
+        js_str = """%s = new google.maps.Marker({
+              position: {lat: %f, lng: %f},
+              map: map,
+              icon: "data/%s"
+          });""" % (name, lat, lng, icon)
+        self.runJavaScript(js_str)
+
+    def moveMarker(self, name, lat, lng):
+        js_str = """%s.setPosition({lat: %f, lng: %f})""" % (name, lat, lng)
+        self.runJavaScript(js_str)
+
+    def deleteMarker(self, name):
+        pass
+
+    def setCenter(self, lat, lng):
+        js_str = """map.setCenter({lat: %f, lng: %f})""" % (lat, lng)
+        self.runJavaScript(js_str)
 
 class scMap_t(QThread):
     def __init__(self):

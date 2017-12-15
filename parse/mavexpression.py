@@ -10,7 +10,7 @@ import os
 
 # these imports allow for mavgraph and mavlogdump to use maths expressions more easily
 from math import *
-from mavextra import *
+from parse.mavextra import *
 
 '''
 Support having a $HOME/.pymavlink/mavextra.py for extra graphing functions

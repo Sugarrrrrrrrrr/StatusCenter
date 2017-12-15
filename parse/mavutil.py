@@ -10,7 +10,7 @@ from builtins import object
 
 import socket, math, struct, time, os, fnmatch, array, sys, errno
 import select
-import mavexpression
+import parse.mavexpression
 
 # adding these extra imports allows pymavlink to be used directly with pyinstaller
 # without having complex spec files. To allow for installs that don't have ardupilotmega
@@ -79,22 +79,22 @@ def set_dialect(dialect):
     For example, set_dialect("ardupilotmega")
     '''
     global mavlink, current_dialect
-    import generator.mavparse
+    import parse.generator.mavparse
     if 'MAVLINK20' in os.environ:
-        wire_protocol = generator.mavparse.PROTOCOL_2_0
-        modname = "dialects.v20." + dialect
+        wire_protocol = parse.generator.mavparse.PROTOCOL_2_0
+        modname = "parse.dialects.v20." + dialect
     elif mavlink is None or mavlink.WIRE_PROTOCOL_VERSION == "1.0" or not 'MAVLINK09' in os.environ:
-        wire_protocol = generator.mavparse.PROTOCOL_1_0
-        modname = "dialects.v10." + dialect
+        wire_protocol = parse.generator.mavparse.PROTOCOL_1_0
+        modname = "parse.dialects.v10." + dialect
     else:
-        wire_protocol = generator.mavparse.PROTOCOL_0_9
-        modname = "dialects.v09." + dialect
+        wire_protocol = parse.generator.mavparse.PROTOCOL_0_9
+        modname = "parse.dialects.v09." + dialect
 
     try:
         mod = __import__(modname)
     except Exception:
         # auto-generate the dialect module
-        from generator.mavgen import mavgen_python_dialect
+        from parse.generator.mavgen import mavgen_python_dialect
         mavgen_python_dialect(dialect, wire_protocol)
         mod = __import__(modname)
     components = modname.split('.')
@@ -1132,7 +1132,7 @@ class mavlogfile(mavfile):
 
 
 class mavpcapfile(mavfile):
-    '''a MAVLink logfile reader/writer'''
+    '''a MAVLink pcapfile reader/writer'''
     def __init__(self, filename, planner_format=None,
                  write=False, append=False,
                  robust_parsing=True, notimestamps=False, source_system=255, use_native=default_native,
@@ -1184,6 +1184,62 @@ class mavpcapfile(mavfile):
     def post_message(self, msg):
         pass
 
+
+class multimavudp(mavfile):
+    '''a UDP mavlink socket contain multi_mav'''
+    def __init__(self, filename, planner_format=None, input = True, broadcast = False,
+                 write=False, append=False,
+                 robust_parsing=True, notimestamps=False, source_system=255, use_native=default_native,
+                 ip_list=['192.168.1.4'], port=14550):
+
+
+
+        self.filename = filename
+        self.writeable = write
+        self.robust_parsing = robust_parsing
+        self.planner_format = planner_format
+        self._two64 = math.pow(2.0, 63)
+        self.ip_list = ip_list
+        self.port = port
+
+        mode = 'rb'
+        if self.writeable:
+            if append:
+                mode = 'ab'
+            else:
+                mode = 'wb'
+
+        sys.path.append('..')
+        from capture.udp_file import multi_mav_udp
+        self.f = multi_mav_udp(filename=self.filename, ip_list=self.ip_list, port=self.port)
+        #self.filesize = os.path.getsize(filename)
+        self.percent = 0
+        mavfile.__init__(self, None, filename, source_system=source_system, notimestamps=notimestamps, use_native=use_native)
+        if self.notimestamps:
+            self._timestamp = 0
+        else:
+            self._timestamp = time.time()
+        self.stop_on_EOF = True
+        self._last_message = None
+        self._last_timestamp = None
+        self._link = 0
+
+    def close(self):
+        self.f.close()
+
+    def recv(self,n=None):
+        if n is None:
+            n = self.mav.bytes_needed()
+        return self.f.read(n)
+
+    def write(self, buf):
+        self.f.write(buf)
+
+    def pre_message(self):
+        pass
+
+    def post_message(self, msg):
+        pass
 
 class mavmemlog(mavfile):
     '''a MAVLink log in memory. This allows loading a log into
@@ -1273,6 +1329,10 @@ def mavlink_connection(device, baud=115200, source_system=255,
     # For legacy purposes we accept the following syntax and let the caller to specify direction
     if device.startswith('udp:'):
         return mavudp(device[4:], input=input, source_system=source_system, use_native=use_native)
+    if device.startswith('network:'):
+        return multimavudp(device[8:], input=input, source_system=source_system, use_native=use_native,
+                           ip_list=ip_list, port=port
+                           )
 
     if device.lower().endswith('.bin') or device.lower().endswith('.px4log'):
         # support dataflash logs

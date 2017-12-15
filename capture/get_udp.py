@@ -18,10 +18,17 @@ def inet_to_str(inet): #转换ip地址为字符串
         return socket.inet_ntop(socket.AF_INET6, inet)
 
 
-def get_udp_from_dev():
+def get_udp_from_dev(network='10.168.103.0', port='14550'):
     devs = pcap.findalldevs()
-    pc = pcap.pcap(devs[3])
-    pc.setfilter('udp port 54915')    #设置监听过滤器,这里指定ip
+    pc = None
+    for dev in devs:
+        t = inet_to_str(pcap.lookupnet(bytearray(dev, 'utf-8'))[0])
+        if t == network:
+            pc = pcap.pcap(dev)
+    if not pc:
+        return False
+    
+    pc.setfilter('udp')    #设置监听过滤器,这里指定port 'udp port 54915'
     for ts, buf in pc:
         eth = dpkt.ethernet.Ethernet(buf)
         if not isinstance(eth.data, dpkt.ip.IP):
@@ -39,7 +46,47 @@ def get_udp_from_dev():
         print ('Ethernet Frame: ', mac_addr(eth.src), mac_addr(eth.dst), eth.type)
         print ('IP: %s -> %s   (len=%d ttl=%d DF=%d MF=%d offset=%d)' % \
 (inet_to_str(ip.src),inet_to_str(ip.dst), ip.len, ip.ttl, do_not_fragment, more_fragments,fragment_offset))
-  
+
+
+def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=14550):
+    devs = pcap.findalldevs()
+    pc = None
+    for dev in devs:
+        t = inet_to_str(pcap.lookupnet(bytearray(dev, 'utf-8'))[0])
+        if t == filename:
+            pc = pcap.pcap(dev)
+    if not pc:
+        return False
+
+    for ts, buf in pc:
+        eth = dpkt.ethernet.Ethernet(buf)
+
+        if not isinstance(eth.data, dpkt.ip.IP):
+            continue
+
+        ip = eth.data
+        src = socket.inet_ntoa(ip.src)
+        dst = socket.inet_ntoa(ip.dst)
+
+        if not (src in ip_list or dst in ip_list):
+            print('not %s' % ip_list[0])
+            continue
+
+        if not isinstance(ip.data, dpkt.udp.UDP):
+            print ('Non UDP Packet type not supported %s\n' %ip.data.__class__.__name__)
+            continue
+
+        udp = ip.data
+        sport = udp.sport
+        dport = udp.dport
+
+        if not (sport == port or dport == port):
+            print('not %d' % port)
+            print(sport, dport)
+            continue
+
+        yield udp.data
+
 
 def get_udp_from_file(filename='../data/test.pcap', ip_list=['192.168.1.4'], port=14550):
     with open(filename,'rb') as file:
@@ -76,10 +123,20 @@ def get_udp_from_file(filename='../data/test.pcap', ip_list=['192.168.1.4'], por
 
             yield udp.data
 
-if __name__ == '__main__':
-    ip_list = ['192.168.1.4']
-    port = 14550
+from PyQt5.QtCore import QThread
+import threading
+class get_udp(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        
+    def run(self):
+        get_udp_from_dev()
 
-    for data in udp_data_from_file(ip_list, port):
-        print(data)
-        input()
+if __name__ == '__main__':
+    #ip_list = ['192.168.1.4']
+    #port = 14550
+
+    #for data in udp_data_from_file(ip_list, port):
+        #print(data)
+        #input()
+    gu = get_udp()

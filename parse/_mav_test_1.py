@@ -4,7 +4,7 @@ sys.path.append('..')
 
 from get_mavlink_from_udp import get_mavlink_from_udp, get_msgid
 #from mavprotocol import MAVLink, MAVError
-from mavparse import MAVParseError
+from generator.mavparse import MAVParseError
 from dialects.v10.ardupilotmega import *
 
 
@@ -51,6 +51,6 @@ if __name__ == '__main__':
     port = 14550
     MAV = MAVLink(None)
     mavlinks = get_mavlink_from_udp(ip_list, port)
+    mavlink = MAV.decode(bytearray(next(mavlinks)))
 
-    mavlink = MAV.decode(next(mavlinks))
 

@@ -10,8 +10,7 @@ from builtins import range
 from builtins import object
 import struct, array, time, json, os, sys, platform
 
-sys.path.append('../../..')
-from generator.mavcrc import x25crc
+from parse.generator.mavcrc import x25crc
 import hashlib
 
 WIRE_PROTOCOL_VERSION = '1.0'

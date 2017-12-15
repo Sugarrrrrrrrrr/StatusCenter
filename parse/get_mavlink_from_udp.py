@@ -1,7 +1,7 @@
 import sys
 sys.path.append('..')
 
-from capture.get_udp_from_file import get_udp_from_file
+from capture.get_udp import get_udp_from_file
 
 
 def get_msgid(mavlink):
@@ -13,7 +13,7 @@ def get_mavlink_from_udp(ip_list, port):
 
     buf = b''
 
-    for data in get_udp_from_file(ip_list, port):
+    for data in get_udp_from_file(ip_list=ip_list, port=port):
 
         mavlink = b''
         buf += data
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     ip_list = ['192.168.1.4']
     port = 14550
 
-    for i, mavlink in enumerate(mavlink_from_udp(ip_list, port)):
+    for i, mavlink in enumerate(get_mavlink_from_udp(ip_list, port)):
         print(i, get_msgid(mavlink), mavlink)
 
 
