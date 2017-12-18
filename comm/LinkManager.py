@@ -1,10 +1,11 @@
 from scToolbox import scToolbox
 from comm.LinkInterface import LinkInterface
+from scToolbox import LinkManager
 
-
+'''
 class LinkManager(scToolbox):
     def __init__(self, app, parent):
-        super().__init__(app, parent)
+        super().__init__(app, parent=parent)
 
         self.links_name = []
         self.links = []
@@ -16,6 +17,8 @@ class LinkManager(scToolbox):
             self.links.append(link)
 
     def update_links_name(self):
-        self.links_name.append("10.168.103.72:14550")
+        self.links_name.append("10.168.103.72:53")
+'''
 
-
+if __name__ == '__main__':
+    pass

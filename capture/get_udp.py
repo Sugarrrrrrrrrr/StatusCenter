@@ -69,11 +69,12 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
         dst = socket.inet_ntoa(ip.dst)
 
         if not (src in ip_list or dst in ip_list):
-            print('not %s' % ip_list[0])
+            #print('not %s' % ip_list[0])
+            #print(src, dst)
             continue
 
         if not isinstance(ip.data, dpkt.udp.UDP):
-            print ('Non UDP Packet type not supported %s\n' %ip.data.__class__.__name__)
+            #print ('Non UDP Packet type not supported %s\n' %ip.data.__class__.__name__)
             continue
 
         udp = ip.data
@@ -81,10 +82,11 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
         dport = udp.dport
 
         if not (sport == port or dport == port):
-            print('not %d' % port)
-            print(sport, dport)
+            #print('not %d' % port)
+            #print(sport, dport)
             continue
 
+        # print(udp.data)
         yield udp.data
 
 

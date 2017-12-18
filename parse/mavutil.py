@@ -1239,6 +1239,7 @@ class multimavudp(mavfile):
         pass
 
     def post_message(self, msg):
+        # process the message
         pass
 
 class mavmemlog(mavfile):

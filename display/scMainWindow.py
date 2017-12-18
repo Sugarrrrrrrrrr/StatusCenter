@@ -38,6 +38,14 @@ class scMap(QWidget):
         js_str = """map.setCenter({lat: %f, lng: %f})""" % (lat, lng)
         self.runJavaScript(js_str)
 
+    def set_home(self, lat, lng):
+        js_str = """home = new google.maps.Marker({
+                    position: {lat: %f, lng: %f},
+                    map: map,
+                    icon: "data/home.png"
+                });""" % (lat, lng)
+        self.runJavaScript(js_str)
+
 class scMap_t(QThread):
     def __init__(self):
         super().__init__()
