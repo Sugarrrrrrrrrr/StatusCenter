@@ -7,8 +7,8 @@ import sys, time
 
 from socket import *
 
-def udp_send(data):
-    host = '192.168.42.128'
+def udp_send(data, host):
+    # host = '192.168.42.255'
     port = 14550
     addr = (host, port)
     udpCliSock = socket(AF_INET, SOCK_DGRAM)
@@ -31,11 +31,12 @@ if __name__ == '__main__':
     b = b"\xfe\x1e\x18\x01\x01\x18\x00\x00\x00\x00\x00\x00\x00\x00\x933\xc5\r\x84\xca\x8aC\x96&\x02\x00\x0f'\xff\xff\x00\x00\x00\x00\x01\x00|\xd6"
     m = mf.mav.decode(bytearray(b))
 
-    for i in range(100):
-        time.sleep(1)
-        m1 = msg_x_y(m, 200, 200)
-        udp_send(m1.pack(mf.mav))
-        m = m1
+    for i in range(1000):
+        #time.sleep(1)
+        m1 = msg_x_y(m, -i*20, i*20)
+        udp_send(m1.pack(mf.mav), '192.168.42.128')
+        m2 = msg_x_y(m, i*20, i*20)
+        udp_send(m2.pack(mf.mav), '192.168.42.255')
         print(i)
 
 
@@ -43,3 +44,4 @@ if __name__ == '__main__':
     #    udp_send(str(time.time()).encode('utf-8'))
 
     print('-----')
+

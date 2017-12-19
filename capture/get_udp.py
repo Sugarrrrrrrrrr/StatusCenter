@@ -59,8 +59,11 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
         return False
 
     pc.setfilter('ip host %s and udp port %d' % (ip_list[0], port))
+    # print('ip host %s and udp port %d' % (ip_list[0], port))
 
     for ts, buf in pc:
+        # print(buf)
+
         eth = dpkt.ethernet.Ethernet(buf)
 
         if not isinstance(eth.data, dpkt.ip.IP):

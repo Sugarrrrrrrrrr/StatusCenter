@@ -31,7 +31,7 @@ class LinkManager(scToolbox):
         with open('.config', 'r') as file:
             for line in file:
                 if not line.startswith('#'):
-                    line_list = line.replace(' ', '').split(',')
+                    line_list = line.strip().replace(' ', '').split(',')
                     self.links_name.append(':'.join(line_list))
 
     def set_home(self, lat, lng):
