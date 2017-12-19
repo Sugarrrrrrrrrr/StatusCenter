@@ -27,7 +27,7 @@ def get_udp_from_dev(network='10.168.103.0', port='14550'):
             pc = pcap.pcap(dev)
     if not pc:
         return False
-    
+
     pc.setfilter('udp')    #设置监听过滤器,这里指定port 'udp port 54915'
     for ts, buf in pc:
         eth = dpkt.ethernet.Ethernet(buf)
@@ -58,6 +58,8 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
     if not pc:
         return False
 
+    pc.setfilter('ip host %s and udp port %d' % (ip_list[0], port))
+
     for ts, buf in pc:
         eth = dpkt.ethernet.Ethernet(buf)
 
@@ -69,12 +71,12 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
         dst = socket.inet_ntoa(ip.dst)
 
         if not (src in ip_list or dst in ip_list):
-            #print('not %s' % ip_list[0])
-            #print(src, dst)
+            print('not %s' % ip_list[0])
+            print(src, dst)
             continue
 
         if not isinstance(ip.data, dpkt.udp.UDP):
-            #print ('Non UDP Packet type not supported %s\n' %ip.data.__class__.__name__)
+            print ('Non UDP Packet type not supported %s\n' %ip.data.__class__.__name__)
             continue
 
         udp = ip.data
@@ -82,11 +84,11 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
         dport = udp.dport
 
         if not (sport == port or dport == port):
-            #print('not %d' % port)
-            #print(sport, dport)
+            print('not %d' % port)
+            print(sport, dport)
             continue
 
-        # print(udp.data)
+        print(udp.data)
         yield udp.data
 
 

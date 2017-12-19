@@ -32,7 +32,14 @@ if __name__ == '__main__':
     m = mf.mav.decode(bytearray(b))
 
     for i in range(100):
-        time.sleep(0.1)
+        time.sleep(1)
         m1 = msg_x_y(m, 200, 200)
         udp_send(m1.pack(mf.mav))
         m = m1
+        print(i)
+
+
+    #for i in range(100):
+    #    udp_send(str(time.time()).encode('utf-8'))
+
+    print('-----')
