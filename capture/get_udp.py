@@ -22,7 +22,10 @@ def get_udp_from_dev(network='10.168.103.0', port='14550'):
     devs = pcap.findalldevs()
     pc = None
     for dev in devs:
-        t = inet_to_str(pcap.lookupnet(bytearray(dev, 'utf-8'))[0])
+        try:
+            t = inet_to_str(pcap.lookupnet(bytearray(dev, 'utf-8'))[0])
+        except Exception as e:
+            print(e)
         if t == network:
             pc = pcap.pcap(dev)
     if not pc:
@@ -52,7 +55,11 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
     devs = pcap.findalldevs()
     pc = None
     for dev in devs:
-        t = inet_to_str(pcap.lookupnet(bytearray(dev, 'utf-8'))[0])
+        try:
+            t = inet_to_str(pcap.lookupnet(bytearray(dev, 'utf-8'))[0])
+        except Exception as e:
+            print(e)
+            continue
         if t == filename:
             pc = pcap.pcap(dev)
     if not pc:
