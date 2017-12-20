@@ -24,13 +24,11 @@
                 var uluru = {lat: lat, lng: lng};
                 map = new google.maps.Map(document.getElementById('map'), {
                     zoom: 17,
-                    center: uluru
+                    center: uluru,
+                    streetViewControl: false,
+                    fullscreenControl: true,
+                    minZoom: 3
                 });
-                //home = new google.maps.Marker({
-                //    position: uluru,
-                //    map: map,
-                //    icon: "data/home.png"
-                //});
             }
         </script>
         <script async defer

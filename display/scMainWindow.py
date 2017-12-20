@@ -5,11 +5,18 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 import sys
 import time
 
+
 class scMap(QWidget):
-    def __init__(self, parent=None):
+    # map class used
+    def __init__(self, app, parent=None):
         super().__init__(parent=parent)
+        self.app = app
         self.browser = QWebEngineView(self)
         self.initUI()
+
+        self.bool_contains = None
+        self.bool_contains_1 = None
+        self.bool_contains_2 = None
 
     def initUI(self):
         self.browser.load(QUrl("file:///display/map.html"))
@@ -18,6 +25,9 @@ class scMap(QWidget):
 
     def runJavaScript(self, js_str):
         self.browser.page().runJavaScript(js_str)
+
+    def runJavaScript_with_callback(self, js_str, callback):
+        self.browser.page().runJavaScript(js_str, callback)
 
     def createMarker(self, name, lat, lng, icon):
         js_str = """%s = new google.maps.Marker({
@@ -28,6 +38,11 @@ class scMap(QWidget):
         self.runJavaScript(js_str)
 
     def moveMarker(self, name, lat, lng):
+
+        # 判断是否越界，越界则重置地图中心与缩放
+        if self.cross_the_border(lat, lng):
+            self.reset_map()
+
         js_str = """%s.setPosition({lat: %f, lng: %f})""" % (name, lat, lng)
         self.runJavaScript(js_str)
 
@@ -38,6 +53,10 @@ class scMap(QWidget):
         js_str = """map.setCenter({lat: %f, lng: %f})""" % (lat, lng)
         self.runJavaScript(js_str)
 
+    def panTo(self, lat, lng):
+        js_str = """map.panTo({lat: %f, lng: %f})""" % (lat, lng)
+        self.runJavaScript(js_str)
+
     def set_home(self, lat, lng):
         js_str = """home = new google.maps.Marker({
                     position: {lat: %f, lng: %f},
@@ -45,6 +64,85 @@ class scMap(QWidget):
                     icon: "data/home.png"
                 });""" % (lat, lng)
         self.runJavaScript(js_str)
+
+    def cross_the_border(self, lat, lng):
+        # None for no result
+
+        js_str = "map.getBounds().contains({lat: %f, lng: %f})" % (lat, lng)
+        self.runJavaScript_with_callback(js_str, self.ctb_callback)
+
+        bool_ctb = self.bool_contains
+        self.bool_contains = None
+        if bool_ctb is None:
+            return bool_ctb
+        else:
+            return not bool_ctb
+
+    def cross_the_border_1(self, lat, lng):
+        # None for no result
+        js_str = "map.getBounds().contains({lat: %f, lng: %f})" % (lat, lng)
+        self.runJavaScript_with_callback(js_str, self.ctb_callback_1)
+
+        bool_ctb = self.bool_contains_1
+        self.bool_contains_1 = None
+        if bool_ctb is None:
+            return bool_ctb
+        else:
+            return not bool_ctb
+
+    def cross_the_border_2(self, lat, lng):
+        # None for no result
+        js_str = "map.getBounds().contains({lat: %f, lng: %f})" % (lat, lng)
+        self.runJavaScript_with_callback(js_str, self.ctb_callback_2)
+
+        bool_ctb = self.bool_contains_2
+        self.bool_contains_2 = None
+        if bool_ctb is None:
+            return bool_ctb
+        else:
+            return not bool_ctb
+
+    def ctb_callback(self, result):
+        self.bool_contains = result
+
+    def ctb_callback_1(self, result):
+        self.bool_contains_1 = result
+
+    def ctb_callback_2(self, result):
+        self.bool_contains_2 = result
+
+    def reset_map(self):
+        lat1 = None
+        lat2 = None
+        lng1 = None
+        lng2 = None
+
+        for linkInt in self.app.toolbox.linkMgr.links:
+            if lat1 is None or linkInt.uav_lat < lat1:
+                lat1 = linkInt.uav_lat
+            if lat2 is None or linkInt.uav_lat > lat2:
+                lat2 = linkInt.uav_lat
+            if lng1 is None or linkInt.uav_lng < lng1:
+                lng1 = linkInt.uav_lng
+            if lng2 is None or linkInt.uav_lng > lng2:
+                lng2 = linkInt.uav_lng
+
+        self.panTo((lat1 + lat2)/2, (lng1 + lng2)/2)
+
+        # 预留范围
+        p = 1/2
+        lat1_goal = lat1 - (lat2 - lat1) * p
+        lat2_goal = lat2 + (lat2 - lat1) * p
+        lng1_goal = lng1 - (lng2 - lng1) * p
+        lng2_goal = lng2 + (lng2 - lng1) * p
+
+        while self.cross_the_border_1(lat1_goal, lng1_goal) or self.cross_the_border_2(lat2_goal, lng2_goal):
+            self.zoom_change(-1)
+
+    def zoom_change(self, n):
+        js_str = '''map.setZoom(map.getZoom() + (%d))''' % n
+        self.runJavaScript(js_str)
+
 
 class scMap_t(QThread):
     def __init__(self):

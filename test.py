@@ -33,9 +33,9 @@ if __name__ == '__main__':
 
     for i in range(1000):
         #time.sleep(1)
-        m1 = msg_x_y(m, -i*20, i*20)
+        m1 = msg_x_y(m, i*20, i*20)
         udp_send(m1.pack(mf.mav), '192.168.42.128')
-        m2 = msg_x_y(m, i*20, i*20)
+        m2 = msg_x_y(m, -i*10, -i*10)
         udp_send(m2.pack(mf.mav), '192.168.42.255')
         print(i)
 

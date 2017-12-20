@@ -15,8 +15,9 @@ class scApplication(QApplication):
         pass
 
     def initForNormalAppBoot(self):
-        self.sc_map = scMap()
+
         self.toolbox = scToolbox(self)
+        self.sc_map = scMap(self)
 
     def shutdown(self):
         del self.toolbox
