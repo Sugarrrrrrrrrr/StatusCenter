@@ -3,7 +3,7 @@ from scToolbox import scToolbox
 from scApplication import scApplication
 from parse import mavutil
 
-import sys, time
+import sys, time, random
 
 from socket import *
 
@@ -30,14 +30,21 @@ if __name__ == '__main__':
     
     b = b"\xfe\x1e\x18\x01\x01\x18\x00\x00\x00\x00\x00\x00\x00\x00\x933\xc5\r\x84\xca\x8aC\x96&\x02\x00\x0f'\xff\xff\x00\x00\x00\x00\x01\x00|\xd6"
     m = mf.mav.decode(bytearray(b))
+    m_t = m
 
-    for i in range(1000):
-        #time.sleep(1)
-        m1 = msg_x_y(m, i*20, i*20)
-        udp_send(m1.pack(mf.mav), '192.168.42.128')
-        m2 = msg_x_y(m, -i*10, -i*10)
-        udp_send(m2.pack(mf.mav), '192.168.42.255')
-        print(i)
+    for i in range(100000):
+        n = 10
+        if i%n == 0:
+            m1 = msg_x_y(m, i*0, i*0)
+            udp_send(m1.pack(mf.mav), '192.168.42.128')
+            r1 = random.random()*100-50
+            r2 = random.random()*100-50
+            print(r1, r2)
+            #m2 = msg_x_y(m_t, int(r1), int(r2))
+            m2 = msg_x_y(m, -i*50, -i*50)
+            m_t = m2
+            udp_send(m2.pack(mf.mav), '192.168.42.255')
+            print(i/n)
 
 
     #for i in range(100):

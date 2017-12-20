@@ -37,11 +37,11 @@ class scMap(QWidget):
           });""" % (name, lat, lng, icon)
         self.runJavaScript(js_str)
 
-    def moveMarker(self, name, lat, lng):
+    def moveMarker(self, name, lat, lng, link):
 
         # 判断是否越界，越界则重置地图中心与缩放
-        if self.cross_the_border(lat, lng):
-            self.reset_map()
+        if self.cross_the_border(lat, lng, link):
+            self.reset_map(link)
 
         js_str = """%s.setPosition({lat: %f, lng: %f})""" % (name, lat, lng)
         self.runJavaScript(js_str)
@@ -65,14 +65,14 @@ class scMap(QWidget):
                 });""" % (lat, lng)
         self.runJavaScript(js_str)
 
-    def cross_the_border(self, lat, lng):
+    def cross_the_border(self, lat, lng, link):
         # None for no result
 
         js_str = "map.getBounds().contains({lat: %f, lng: %f})" % (lat, lng)
-        self.runJavaScript_with_callback(js_str, self.ctb_callback)
+        self.runJavaScript_with_callback(js_str, link.js_callback)
 
-        bool_ctb = self.bool_contains
-        self.bool_contains = None
+        bool_ctb = link.js_result
+        link.js_result = None
         if bool_ctb is None:
             return bool_ctb
         else:
@@ -111,7 +111,7 @@ class scMap(QWidget):
     def ctb_callback_2(self, result):
         self.bool_contains_2 = result
 
-    def reset_map(self):
+    def reset_map(self, link):
         lat1 = None
         lat2 = None
         lng1 = None
@@ -130,13 +130,13 @@ class scMap(QWidget):
         self.panTo((lat1 + lat2)/2, (lng1 + lng2)/2)
 
         # 预留范围
-        p = 1/2
+        p = 1/4
         lat1_goal = lat1 - (lat2 - lat1) * p
         lat2_goal = lat2 + (lat2 - lat1) * p
         lng1_goal = lng1 - (lng2 - lng1) * p
         lng2_goal = lng2 + (lng2 - lng1) * p
 
-        while self.cross_the_border_1(lat1_goal, lng1_goal) or self.cross_the_border_2(lat2_goal, lng2_goal):
+        if self.cross_the_border(lat1_goal, lng1_goal, link) or self.cross_the_border(lat2_goal, lng2_goal, link):
             self.zoom_change(-1)
 
     def zoom_change(self, n):

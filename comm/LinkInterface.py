@@ -14,6 +14,8 @@ class LinkInterface(threading.Thread):
         self.uav_lng = None
         self.message_recieved = 0
 
+        self.js_result = None
+
         # link_name = uav1:10.168.103.72:14550
         # mav = mavutil.mavlink_connection('network:10.168.103.0', ip_list=['10.168.103.72'], port=53)
         list_link = link_name.split(':')
@@ -27,6 +29,9 @@ class LinkInterface(threading.Thread):
         self.mav = mavutil.mavlink_connection('network:' + self.network, ip_list=[self.ip], port=self.port)
 
         self.start()
+
+    def js_callback(self, v):
+        self.js_result = v
 
     def run(self):
         # wait for the heartbeat message and add the plane to the map
@@ -56,7 +61,7 @@ class LinkInterface(threading.Thread):
                     self.marker_create = True
                     self.app.sc_map.createMarker(self.uav_name, self.uav_lat, self.uav_lng, self.icon)
 
-                self.app.sc_map.moveMarker(self.uav_name, self.uav_lat, self.uav_lng)
+                self.app.sc_map.moveMarker(self.uav_name, self.uav_lat, self.uav_lng, self)
             elif msg_type == "GLOBAL_POSITION_INT":
                 pass
             elif msg_type == "BAD_DATA":
