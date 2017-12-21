@@ -98,7 +98,7 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
             print(sport, dport)
             continue
 
-        print(udp.data)
+        # print(udp.data)
         yield udp.data
 
 

@@ -35,14 +35,14 @@ if __name__ == '__main__':
     for i in range(100000):
         n = 10
         if i%n == 0:
-            m1 = msg_x_y(m, i*0, i*0)
+            m1 = msg_x_y(m, i*5, i*5)
             udp_send(m1.pack(mf.mav), '192.168.42.128')
-            r1 = random.random()*100-50
-            r2 = random.random()*100-50
-            print(r1, r2)
+            #r1 = random.random()*100-50
+            #r2 = random.random()*100-50
+            #print(r1, r2)
             #m2 = msg_x_y(m_t, int(r1), int(r2))
-            m2 = msg_x_y(m, -i*50, -i*50)
-            m_t = m2
+            m2 = msg_x_y(m, -i*5-100, -i*5)
+            #m_t = m2
             udp_send(m2.pack(mf.mav), '192.168.42.255')
             print(i/n)
 

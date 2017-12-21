@@ -14,20 +14,24 @@
         <div id="map"></div>
         <script>
             var map;
-            var lat;
-            var lng;
 
             function initMap() {
-                lat = 39.9651391731;
-                lng = 116.3420835823;
+                var lat = 39.9651391731;
+                var lng = 116.3420835823;
                 var uluru = {lat: lat, lng: lng};
                 map = new google.maps.Map(document.getElementById('map'), {
                     zoom: 17,
                     center: uluru,
                     streetViewControl: false,
                     fullscreenControl: true,
-                    minZoom: 3
+                    minZoom: 3,
+                    maxZoom: 20
                 });
+            }
+            
+            function fitBounds(lat1, lat2, lng1, lng2) {
+                var bounds =  new google.maps.LatLngBounds({lat: lat1, lng: lng1}, {lat: lat2, lng: lng2})
+                map.fitBounds(bounds)
             }
         </script>
         <script async defer

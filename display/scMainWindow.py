@@ -4,7 +4,7 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 
 import sys
 import time
-
+import threading
 
 class scMap(QWidget):
     # map class used
@@ -13,6 +13,11 @@ class scMap(QWidget):
         self.app = app
         self.browser = QWebEngineView(self)
         self.initUI()
+
+        self.bool_zoom_change = True
+        self.bool_reset_map = True
+        self.zoom_got = None
+        self.bounds_got = None
 
         self.bool_contains = None
         self.bool_contains_1 = None
@@ -41,6 +46,7 @@ class scMap(QWidget):
 
         # 判断是否越界，越界则重置地图中心与缩放
         if self.cross_the_border(lat, lng, link):
+            # print('cross_the_border')
             self.reset_map(link)
 
         js_str = """%s.setPosition({lat: %f, lng: %f})""" % (name, lat, lng)
@@ -112,37 +118,149 @@ class scMap(QWidget):
         self.bool_contains_2 = result
 
     def reset_map(self, link):
-        lat1 = None
-        lat2 = None
-        lng1 = None
-        lng2 = None
+        if self.bool_reset_map:
+            self.bool_reset_map = False
 
-        for linkInt in self.app.toolbox.linkMgr.links:
-            if lat1 is None or linkInt.uav_lat < lat1:
-                lat1 = linkInt.uav_lat
-            if lat2 is None or linkInt.uav_lat > lat2:
-                lat2 = linkInt.uav_lat
-            if lng1 is None or linkInt.uav_lng < lng1:
-                lng1 = linkInt.uav_lng
-            if lng2 is None or linkInt.uav_lng > lng2:
-                lng2 = linkInt.uav_lng
+            lat1 = None
+            lat2 = None
+            lng1 = None
+            lng2 = None
 
-        self.panTo((lat1 + lat2)/2, (lng1 + lng2)/2)
+            for linkInt in self.app.toolbox.linkMgr.links:
+                if lat1 is None or linkInt.uav_lat < lat1:
+                    lat1 = linkInt.uav_lat
+                if lat2 is None or linkInt.uav_lat > lat2:
+                    lat2 = linkInt.uav_lat
+                if lng1 is None or linkInt.uav_lng < lng1:
+                    lng1 = linkInt.uav_lng
+                if lng2 is None or linkInt.uav_lng > lng2:
+                    lng2 = linkInt.uav_lng
 
-        # 预留范围
-        p = 1/4
-        lat1_goal = lat1 - (lat2 - lat1) * p
-        lat2_goal = lat2 + (lat2 - lat1) * p
-        lng1_goal = lng1 - (lng2 - lng1) * p
-        lng2_goal = lng2 + (lng2 - lng1) * p
+            self.panTo((lat1 + lat2) / 2, (lng1 + lng2) / 2)
 
-        if self.cross_the_border(lat1_goal, lng1_goal, link) or self.cross_the_border(lat2_goal, lng2_goal, link):
-            self.zoom_change(-1)
+            # 预留范围
+            p = 1/8
+            lat1_goal = lat1 - (lat2 - lat1) * p
+            lat2_goal = lat2 + (lat2 - lat1) * p
+            lng1_goal = lng1 - (lng2 - lng1) * p
+            lng2_goal = lng2 + (lng2 - lng1) * p
 
-    def zoom_change(self, n):
-        js_str = '''map.setZoom(map.getZoom() + (%d))''' % n
+            # get map bounds (lat1_got, lat2_got, lng1_got, lng2_got)
+            bounds = None
+            while bounds is None:
+                bounds = self.getBounds()
+            lat1_got, lat2_got, lng1_got, lng2_got = bounds
+            # get zoom(n_got)
+            n_got = None
+            while n_got is None:
+                n_got = self.getZoom()
+            # compare (lat1_goal, lat2_goal, lng1_goal, lng2_goal) and (lat1_got, lat2_got, lng1_got, lng2_got)
+            ratio = max(
+                ([(lat2_goal - lat1_goal) / (lat2_got - lat1_got), (lng2_goal - lng1_goal) / (lng2_got - lng1_got)]))
+            # confirm delta
+            delta = 0
+            if ratio > 1:
+                # while ratio > 1:
+                #    delta -= 1
+                #    ratio /= 2
+                delta = -1
+            elif 1 / 2 >= ratio > 0:
+                # while ratio <= 1 / 2:
+                #   delta += 1
+                #   ratio *= 2
+                 delta = 1
+            elif ratio == 0 or 1 >= ratio > 1 / 2:
+                pass
+            else:
+                input('reset map::ratio error')
+
+            n_goal = n_got + delta
+            if n_goal > 20:
+                n_goal = 20
+            elif n_goal < 3:
+                n_goal = 3
+
+            #if delta != 0:
+            #    print(threading.current_thread().getName(), 'delta:', delta, '|', 'n_goal:', n_goal)
+            #    print((lat1_goal, lat2_goal, lng1_goal, lng2_goal), (lat1_got, lat2_got, lng1_got, lng2_got))
+
+            # self.zoom_change(zoom=n_goal)
+            self.fitBounds(lat1_goal, lat2_goal, lng1_goal, lng2_goal)
+
+            self.bool_reset_map = True
+
+    def fitBounds(self, lat1_goal, lat2_goal, lng1_goal, lng2_goal):
+        js_str = '''fitBounds(%f, %f, %f, %f)''' % (lat1_goal, lat2_goal, lng1_goal, lng2_goal)
         self.runJavaScript(js_str)
 
+    def zoom_change(self, delta=-1, zoom=None):
+        if self.bool_zoom_change:
+            self.bool_zoom_change = False
+
+            if zoom is None:
+                n_got = None
+                while n_got is None:
+                    n_got = self.getZoom()
+
+                n_goal = n_got + delta
+                if n_goal > 20:
+                    n_goal = 20
+                elif n_goal < 3:
+                    n_goal = 3
+
+                if delta != 0:
+                    print('n_goal:', n_goal, threading.current_thread().getName())
+
+                while n_got != n_goal:
+                    # setZoom
+                    js_str = '''map.setZoom(%d)''' % n_goal
+                    self.runJavaScript(js_str)
+                    # getZoom
+                    n_temp = None
+                    while n_temp is None:
+                        n_temp = self.getZoom()
+                    n_got = n_temp
+            else:
+                n_got = None
+                while n_got is None:
+                    n_got = self.getZoom()
+
+                n_goal = zoom
+                while n_got != n_goal:
+                    # setZoom
+                    js_str = '''map.setZoom(%d)''' % n_goal
+                    self.runJavaScript(js_str)
+                    # getZoom
+                    n_temp = None
+                    while n_temp is None:
+                        n_temp = self.getZoom()
+                    n_got = n_temp
+
+        self.bool_zoom_change = True
+
+    def getZoom(self):
+        js_str = '''map.getZoom()'''
+        self.runJavaScript_with_callback(js_str, self.callback_getZoom)
+        zoom = self.zoom_got
+        self.zoom_got = None
+        return zoom
+
+    def callback_getZoom(self, result):
+        self.zoom_got = result
+
+    def getBounds(self):
+        js_str = '''map.getBounds()'''
+        self.runJavaScript_with_callback(js_str, self.callback_getBounds)
+        bounds = self.bounds_got
+        self.bounds_got = None
+        if bounds is None:
+            return bounds
+        else:
+            # return (lat1_got, lat2_got, lng1_got, lng2_got)
+            return(bounds['f']['b'], bounds['f']['f'], bounds['b']['b'], bounds['b']['f'])
+
+    def callback_getBounds(self, result):
+        self.bounds_got = result
 
 class scMap_t(QThread):
     def __init__(self):
