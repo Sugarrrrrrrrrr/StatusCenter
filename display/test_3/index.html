@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>test</title>
+        <script src="./qwebchannel.js"></script>
+    </head>
+    <body style="background:#282c34;">
+        <h3 style="color:#ffffff;">this is web page</h3>
+        <input type="button" value="SLOT: bridge.showMsgBox" onclick="onShowMsgBox()">
+        <input type="button" value="alert" onclick="onSendText()">
+        <script>
+            window.onload = function () {
+                new QWebChannel(qt.webChannelTransport, function(channel) {
+                    window.bridge = channel.objects.bridge;
+                });
+
+                bridge.sendText.connect(showAlert());
+                bridge.signal_1.connect(function () {
+                    alert('signal_1');
+                });
+            };
+
+            function onShowMsgBox() {
+                if (bridge) {
+                    bridge.showMsgBox('from js');
+                }
+            };
+
+            function onSendText() {
+                if (bridge) {
+                    showAlert()
+                }
+            };
+
+            function showAlert() {
+                alert('this is web alert');
+            };
+    </script>
+  </body>
+</html>

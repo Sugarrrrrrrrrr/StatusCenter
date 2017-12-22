@@ -54,7 +54,7 @@ class Core(QtCore.QObject):
 
 class Dialog(QtWidgets.QDialog):
     sendText = QtCore.pyqtSignal(str)
-    clicked = QtCore.pyqtSignal()
+    # clicked = QtCore.pyqtSignal()
 
     def __init__(self, parent):
         super().__init__(parent)
