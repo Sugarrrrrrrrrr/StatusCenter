@@ -1,6 +1,9 @@
 from PyQt5.QtCore import QUrl, QThread, QSizeF
 from PyQt5.QtWidgets import QWidget, QApplication
 from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWebChannel import QWebChannel
+
+from display.bridge import Bridge
 
 import sys
 import time
@@ -12,6 +15,12 @@ class scMap(QWidget):
         super().__init__(parent=parent)
         self.app = app
         self.browser = QWebEngineView(self)
+
+        self.channel = QWebChannel()
+        self.bridge = Bridge()
+        self.channel.registerObject('bridge', self.bridge)
+        self.browser.page().setWebChannel(self.channel)
+
         self.initUI()
 
         self.bool_zoom_change = True
@@ -116,6 +125,9 @@ class scMap(QWidget):
 
     def ctb_callback_2(self, result):
         self.bool_contains_2 = result
+
+    def callback_print(self, v):
+        print(type(v), v)
 
     def reset_map(self, link):
         if self.bool_reset_map:

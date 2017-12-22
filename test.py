@@ -18,10 +18,7 @@ def msg_x_y(m, x, y):
     return mf.mav.gps_raw_int_encode(m.time_usec, m.fix_type, m.lat+x, m.lon+y, m.alt, m.eph, m.epv, m.vel, m.cog, m.satellites_visible)
     
 
-if __name__ == '__main__':
-
-    
-    
+def main():
     #app = scApplication(sys.argv)
     #app.initForNormalAppBoot()
 
@@ -51,3 +48,7 @@ if __name__ == '__main__':
     #    udp_send(str(time.time()).encode('utf-8'))
 
     print('-----')
+
+if __name__ == '__main__':
+    app = scApplication(sys.argv)
+    app.initForNormalAppBoot()

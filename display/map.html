@@ -9,19 +9,28 @@
                 width: 100%;
             }
         </style>
+        <script src="./qwebchannel.js"></script>
     </head>
     <body>
         <div id="map"></div>
         <script>
             var map;
 
+            window.onload = function () {
+                new QWebChannel(qt.webChannelTransport, function(channel) {
+                    window.bridge = channel.objects.bridge;
+                    bridge.signal_test.connect(function () {
+                        alert('sendText');
+                    });
+                });
+            };
+
             function initMap() {
                 var lat = 39.9651391731;
                 var lng = 116.3420835823;
-                var uluru = {lat: lat, lng: lng};
                 map = new google.maps.Map(document.getElementById('map'), {
                     zoom: 17,
-                    center: uluru,
+                    center: {lat: lat, lng: lng},
                     streetViewControl: false,
                     fullscreenControl: true,
                     minZoom: 3,
