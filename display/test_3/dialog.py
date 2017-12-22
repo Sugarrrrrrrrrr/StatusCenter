@@ -7,7 +7,7 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import QObject, QUrl
+from PyQt5.QtCore import QObject, QUrl, QFileInfo
 from PyQt5.QtWidgets import QMessageBox, QDialog, QApplication
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWebChannel import QWebChannel
@@ -76,7 +76,7 @@ class Dialog(QDialog):
 
         self.channel.registerObject('b', self.b)
         self.m_view.page().setWebChannel(self.channel)
-        self.m_view.page().load(QUrl("file:///index.html"))
+        self.m_view.page().load(QUrl("file:///" + QFileInfo("index.html").absoluteFilePath()))
 
         self.ui.viewLayout.addWidget(self.m_view)
         # js_str = '''window.bridge.showMsgBox()'''
