@@ -51,7 +51,7 @@ class bridge(QObject):
         super().__init__(parent)
         self.dialog = dialog
         dialog.ui.pbGetWebWidth.clicked.connect(self.signal_1)
-        dialog.ui.pbGetWebWidth.clicked.connect(self.sendText)
+        # dialog.ui.pbGetWebWidth.clicked.connect(self.sendText)
 
     def instance(self):
         return bridge()
@@ -74,7 +74,7 @@ class Dialog(QDialog):
         self.channel = QWebChannel(self)
         self.b = bridge(self)
 
-        self.channel.registerObject('bridge', self.b)
+        self.channel.registerObject('b', self.b)
         self.m_view.page().setWebChannel(self.channel)
         self.m_view.page().load(QUrl("file:///index.html"))
 
@@ -84,10 +84,10 @@ class Dialog(QDialog):
         self.ui.pbAlert.clicked.connect(lambda: self.m_view.page().runJavaScript(js_str, self.callback))
         # self.ui.pbAlert.clicked.connect(lambda: self.b.sendText.emit())
 
-        self.ui.pbGetWebWidth.clicked.connect(lambda: self.b.sendText.emit())
+        # self.ui.pbGetWebWidth.clicked.connect(lambda: self.b.sendText.emit())
 
-        #self.b.sendText.connect(lambda: print('b.sendText.emit():'))
-        #self.b.signal_1.connect(lambda: print('b.signal_1.emit():'))
+        # self.b.sendText.connect(lambda: print('b.sendText.emit():'))
+        # self.b.signal_1.connect(lambda: print('b.signal_1.emit():'))
 
     def __del__(self):
         del self.ui

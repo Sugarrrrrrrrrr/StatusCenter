@@ -12,23 +12,27 @@
         <script>
             window.onload = function () {
                 new QWebChannel(qt.webChannelTransport, function(channel) {
-                    window.bridge = channel.objects.bridge;
-                });
+                    window.channel = channel
+                    window.b = channel.objects.b;
 
-                bridge.sendText.connect(showAlert());
-                bridge.signal_1.connect(function () {
-                    alert('signal_1');
+
+                    b.sendText.connect(function () {
+                        alert('sendText');
+                    });
+                    b.signal_1.connect(function () {
+                        alert('signal_1');
+                    });
                 });
             };
 
             function onShowMsgBox() {
-                if (bridge) {
-                    bridge.showMsgBox('from js');
+                if (b) {
+                    b.showMsgBox('from js');
                 }
             };
 
             function onSendText() {
-                if (bridge) {
+                if (b) {
                     showAlert()
                 }
             };
