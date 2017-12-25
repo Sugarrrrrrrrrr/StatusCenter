@@ -17,6 +17,7 @@ while True:
     print('wating for message...')
     data, addr = udpSerSock.recvfrom(BUFSIZE)
     print(data)
+    print("addr:", addr)
     udpSerSock.sendto(('[%s] %s' % (ctime(), data)).encode('utf-8'), addr)
     print('...received from and retuned to:', addr)
 

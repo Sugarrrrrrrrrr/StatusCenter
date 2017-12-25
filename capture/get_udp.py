@@ -86,7 +86,7 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
             continue
 
         if not isinstance(ip.data, dpkt.udp.UDP):
-            print ('Non UDP Packet type not supported %s\n' %ip.data.__class__.__name__)
+            print('Non UDP Packet type not supported %s\n' %ip.data.__class__.__name__)
             continue
 
         udp = ip.data
@@ -99,7 +99,8 @@ def get_udp_from_network(filename='192.168.1.0', ip_list=['192.168.1.4'], port=1
             continue
 
         # print(udp.data)
-        yield udp.data
+        src_addr = (src, sport)
+        yield (udp.data, src_addr)
 
 
 def get_udp_from_file(filename='../data/test.pcap', ip_list=['192.168.1.4'], port=14550):
