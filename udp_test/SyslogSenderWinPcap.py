@@ -4,6 +4,7 @@ import threading
 import socket
 import dpkt
 import random
+import struct
 
 class SyslogSenderWinPcap:
     '''
@@ -74,10 +75,11 @@ class SyslogSenderWinPcap:
             dst = self.dst_mac,
             src = self.src_mac)
         
-        to_send = str(e)
+        to_send = eval(str(e))
         
-        buf = (ctypes.c_ubyte * len(to_send))(*map(ord, to_send))
+        buf = (ctypes.c_ubyte * len(to_send))(*to_send)
         winpcapy.winpcapy_types.pcap_sendpacket(self.fp, buf, len(buf))
+        return e, buf, to_send
         
     def GetEthernetHeader(self):
         # 抓包过滤
@@ -123,8 +125,7 @@ class SyslogSenderWinPcap:
             exit(-1)
         #finally:
             #sock.close()
-        
-    
+
     def MacAddress(self, s):
         return struct.pack('BBBBBB', *[int(i, 16) for i in s.split('-')])
         
@@ -144,8 +145,9 @@ class SyslogSenderWinPcap:
         i.dst = socket.inet_aton(self.dst)
         i.len = len(i)
         
-        self.Send(i)
+        e, buf, to_send = self.Send(i)
+        return i, e, buf, to_send
 
 if __name__ == '__main__':
     s = SyslogSenderWinPcap('192.168.42.128', 14550, '192.168.42.22', 22222)
-    s.Process(b'hiiiiiiiiiiiiiii')
+    i, e, buf, to_send = s.Process(b'hiiiiiiiiiiiiiii')
