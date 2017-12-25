@@ -1,4 +1,5 @@
 import socket
+import dpkt
 
 class SyslogSenderRawScoket:
     def __init__(self, dst, dport, src, sport = 10000):
@@ -12,7 +13,7 @@ class SyslogSenderRawScoket:
         self.sock.connect((self.dst, 1))
         
     def Send(self, ip_packet):
-        self.sock.sendall(str(ip_packet))
+        self.sock.sendall(eval(str(ip_packet)))
 
     def Process(self, msg):
         u = dpkt.udp.UDP()
@@ -31,9 +32,11 @@ class SyslogSenderRawScoket:
         i.src = socket.inet_aton(self.src) # xp sp2之后 禁止发送非本机IP地址的数据包；linux, server无限制
         i.dst = socket.inet_aton(self.dst)
         i.len = len(i)
+
+        self.i = i
         
         self.Send(i)
 
 if __name__ == '__main__':
-    s = SyslogSenderRawScoket('192.168.42.128', 14550, '192.168.42.2', 22222)
+    s = SyslogSenderRawScoket('192.168.42.1', 14550, '192.168.42.2', 22222)
     
