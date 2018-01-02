@@ -4,7 +4,7 @@ sys.path.append('..')
 from parse import mavutil
 
 def send(b, mav):
-    m = mav.mav.decode(bytearray(b0))
+    m = mav.mav.decode(bytearray(b))
     mav.mav.send(m)
 
 def wait(msg_type, mav, n=100):
