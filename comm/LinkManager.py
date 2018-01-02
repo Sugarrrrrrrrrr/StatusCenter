@@ -3,6 +3,7 @@ from comm.LinkInterface import LinkInterface
 from scToolbox import LinkManager
 
 '''
+# rewite in scToolbox.py
 class LinkManager(scToolbox):
     def __init__(self, app, parent):
         super().__init__(app, parent=parent)

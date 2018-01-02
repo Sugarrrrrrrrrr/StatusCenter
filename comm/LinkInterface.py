@@ -3,10 +3,10 @@ from parse import mavutil
 
 
 class LinkInterface(threading.Thread):
-    def __init__(self, link_name, app, linkMgr):
+    def __init__(self, uav, app, linkMgr):
         super().__init__()
         self.app = app
-        self.link_name = link_name
+        self.uav = uav
         self.linkMgr = linkMgr
 
         self.marker_create = False
@@ -16,18 +16,30 @@ class LinkInterface(threading.Thread):
 
         self.js_result = None
 
-        # link_name = uav1:10.168.103.72:14550
-        # mav = mavutil.mavlink_connection('network:10.168.103.0', ip_list=['10.168.103.72'], port=53)
-        list_link = link_name.split(':')
-        self.uav_name = list_link[0]
-        self.ip = list_link[1]
-        self.port = eval(list_link[2])
-        self.icon = list_link[3]
+# ----------------------------------------------------------------------------------------------------------------------
+        self.connect_type = uav['type']
 
-        list_ip = self.ip.split('.')
-        self.network = '.'.join(list_ip[:-1]) + '.0'
-        self.mav = mavutil.mavlink_connection('network:' + self.network, ip_list=[self.ip], port=self.port)
+        if self.connect_type == 0:
+            self.uav_name = uav['name']
+            self.ip = uav['ip']
+            self.port = uav['port']
+            self.icon = uav['icon']
 
+            self.network = '.'.join(self.ip.split('.')[:-1]) + '.0'
+            self.mav = mavutil.mavlink_connection('network:' + self.network, ip_list=[self.ip], port=self.port)
+
+        elif self.connect_type == 1:
+            self.uav_name = uav['name']
+            self.ip = uav['ip']
+            self.port = uav['port']
+            self.icon = uav['icon']
+
+            self.mav = mavutil.mavlink_connection('udp:' + self.ip + ':' + str(self.port))
+
+        else:
+            print('error: unknow connect_type: ', self.connect_type)
+            return
+# ----------------------------------------------------------------------------------------------------------------------
         self.start()
 
     def js_callback(self, v):
@@ -65,7 +77,7 @@ class LinkInterface(threading.Thread):
             elif msg_type == "GLOBAL_POSITION_INT":
                 pass
             elif msg_type == "BAD_DATA":
-                #print(msg.data)
+                # print(msg.data)
                 debug = False
                 if debug:
                     print(self.message_recieved, 'bad_msg')
@@ -85,5 +97,3 @@ class LinkInterface(threading.Thread):
 if __name__ == '__main__':
     LI = LinkInterface('10.168.103.72:53')
     print(LI.mav.recv(10))
-
-

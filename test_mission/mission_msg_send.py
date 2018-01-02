@@ -9,10 +9,10 @@ def send(b, mav):
 
 def wait(msg_type, mav, n=100):
     for i in range(n):
-        m = mav.recv_msg():
-            if m.get_type() == msg_type():
-                print(m)
-                break
+        m = mav.recv_msg()
+        if m.get_type() == msg_type():
+            print(m)
+            break
 
 
 if __name__ == '__main__':
@@ -33,12 +33,23 @@ if __name__ == '__main__':
     b9 = b"\xfe%\xfc\xff\xbe\'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xa0A\t\x00\x14\x00\x01\x01\x03\x00\x011\x1e"
     b10 = b"\xfe%\xfe\xff\xbe\'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x1f\xdb\x1fB4\xac\xe8B\x00\x00\x80?\n\x00\x15\x00\x01\x01\x03\x00\x01\xe6r"
     ba = b'\xfe\x03\xff\xff\xbe/\x01\x01\x00\x01Z'
+    l = [bc, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, ba]
 
     mission_request = 'MISSION_REQUEST'
     mission_ack = 'MISSION_ACK'
     
-    # mav = mavutil.mavlink_connection('udp:192.168.4.2:14550')
-    mav = mavutil.mavlink_connection('udp:192.168.42.1:14550')
-    
+    mav = mavutil.mavlink_connection('udp:192.168.4.2:14550')
+    # mav = mavutil.mavlink_connection('udp:192.168.42.1:14550')
 
+    def b():
+        for b in l:
+            yield b
+
+    def s(b, mav = mav):
+        m = mav.mav.decode(bytearray(b))
+        mav.mav.send(m)
+
+    bbb = b()
+    mav.wait_heartbeat()
+    print('s(next(bbb))')
     
