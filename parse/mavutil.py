@@ -10,7 +10,7 @@ from builtins import object
 
 import socket, math, struct, time, os, fnmatch, array, sys, errno
 import select
-import parse.mavexpression
+from parse import mavexpression
 
 # adding these extra imports allows pymavlink to be used directly with pyinstaller
 # without having complex spec files. To allow for installs that don't have ardupilotmega

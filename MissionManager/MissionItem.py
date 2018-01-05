@@ -1,7 +1,8 @@
+from PyQt5.QtCore import QObject
 
-
-class MissionItem:
+class MissionItem(QObject):
     def __init__(self, item=None, parent=None):
+        super.__init__(parent=parent)
         self.parent = parent
         self.item_recieved = None
         self._doJumpId = -1

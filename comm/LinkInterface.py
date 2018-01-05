@@ -16,30 +16,31 @@ class LinkInterface(threading.Thread):
 
         self.js_result = None
 
-# ----------------------------------------------------------------------------------------------------------------------
+    # connect mode choose
         self.connect_type = uav['type']
-
         if self.connect_type == 0:
             self.uav_name = uav['name']
             self.ip = uav['ip']
             self.port = uav['port']
             self.icon = uav['icon']
-
             self.network = '.'.join(self.ip.split('.')[:-1]) + '.0'
             self.mav = mavutil.mavlink_connection('network:' + self.network, ip_list=[self.ip], port=self.port)
-
         elif self.connect_type == 1:
             self.uav_name = uav['name']
             self.ip = uav['ip']
             self.port = uav['port']
             self.icon = uav['icon']
-
             self.mav = mavutil.mavlink_connection('udp:' + self.ip + ':' + str(self.port))
-
         else:
             print('error: unknow connect_type: ', self.connect_type)
             return
-# ----------------------------------------------------------------------------------------------------------------------
+    # -----
+
+    # Vehicle class attributes
+        self._firmwareType = 3         # MAV_AUTOPILOT_ARDUPILOTMEGA       3
+        self._supportsMissionItemInt = False
+    # -----
+
         self.start()
 
     def js_callback(self, v):
@@ -92,6 +93,49 @@ class LinkInterface(threading.Thread):
                         self.app.sc_map.moveMarker(self.uav_name, self.uav_lat, self.uav_lng)
             else:
                 print(msg)
+
+# Vehicle class methods
+    def id(self):
+        return 1
+
+    def defaultComponentId(self):
+        return 1
+
+    def apmFirmware(self):
+        return self._firmwareType == 3      # MAV_AUTOPILOT_ARDUPILOTMEGA       3
+
+    def px4Firmware(self):
+        return self._firmwareType == 12     # MAV_AUTOPILOT_PX4                 12
+
+    def genericFirmware(self):
+        return not self.apmFirmware() and not self.px4Firmware()
+
+    def setHomePosition(self, x, y, z):
+        pass
+
+    def sendHomePositionToVehicle(self) -> bool:    # method of class FirmwarePlugin
+        if self.__firmwareType == 3:
+            # APM stack wants the home position sent in the first position
+            return True
+        elif self.__firmwareType == 12:
+            # PX4 stack does not want home position sent in the first position.
+            # Subsequent sequence numbers must be adjusted.
+            return False
+        else:
+            # Generic stack does not want home position sent in the first position.
+            # Subsequent sequence numbers must be adjusted.
+            # This is the mavlink spec default.
+            return False
+
+    def flightMode(self):
+        return 1
+
+    def missionFlightMode(self):
+        return 1
+
+    def supportsMissionItemInt(self):
+        return self._supportsMissionItemInt
+# -----
 
 
 if __name__ == '__main__':
