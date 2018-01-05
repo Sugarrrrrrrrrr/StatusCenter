@@ -153,45 +153,51 @@ class MissionItem:
             pass
 
 
-if __name__ == '__main__':
-    l = []
-    first_line = ''
-    with open('waypoints_file.waypoints', 'r') as file:
-        first_line = file.readline()
+def read_mission_items_file(file_name):
+    mission_items = []
+    with open(file_name, 'r') as file:
+        file.readline()
         for line in file:
-            # print(line)
-            item = MissionItem(line)
-            l.append(item)
+            mission_item = MissionItem(line)
+            mission_items.append(mission_item)
+    return mission_items
 
-    with open('waypoints_file_write.waypoints', 'w') as file:
+
+def write_mission_items_file(mission_items, file_name):
+    first_line = 'QGC WPL 110\n'
+    with open(file_name, 'w') as file:
         file.write(first_line)
-        for self in l:
-
-            if self.isCurrentItem():
+        for mission_item in mission_items:
+            if mission_item.isCurrentItem():
                 isCurrentItem = 1
             else:
                 isCurrentItem = 0
 
-            if self.autoContinue():
+            if mission_item.autoContinue():
                 autoContinue = 1
             else:
                 autoContinue = 0
 
             line = '%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%d\n' % (
-                self.sequenceNumber(),
+                mission_item.sequenceNumber(),
                 isCurrentItem,
-                self.frame(),
-                self.command(),
-                self.param1(),
-                self.param2(),
-                self.param3(),
-                self.param4(),
-                self.param5(),
-                self.param6(),
-                self.param7(),
+                mission_item.frame(),
+                mission_item.command(),
+                mission_item.param1(),
+                mission_item.param2(),
+                mission_item.param3(),
+                mission_item.param4(),
+                mission_item.param5(),
+                mission_item.param6(),
+                mission_item.param7(),
                 autoContinue
             )
             file.write(line)
+
+
+if __name__ == '__main__':
+    l = read_mission_items_file('waypoints_file.waypoints')
+    write_mission_items_file(l, 'waypoints_file_write.waypoints')
 
 
 
