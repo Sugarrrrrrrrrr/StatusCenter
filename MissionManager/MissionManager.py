@@ -38,7 +38,7 @@ class TransactionType(Enum):
 class MissionManager(QObject):
     def __init__(self, vehicle):
         self._vehicle = vehicle  # type: Vehicle
-        self._mav = self._vehicle.mav
+        self._mav = self._vehicle.getMav()
         self._ackTimeoutTimer = None  # type: QTimer
         self._expectedAck = AckType.AckNone  # type: AckType
         self._transactionInProgress = TransactionType.TransactionNone  # type: TransactionType
