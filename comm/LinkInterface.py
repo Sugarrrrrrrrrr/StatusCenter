@@ -37,8 +37,8 @@ class LinkInterface(threading.Thread):
     # -----
 
     # Vehicle class attributes
-        self._firmwareType = 3         # MAV_AUTOPILOT_ARDUPILOTMEGA       3
-        self._supportsMissionItemInt = False
+    #    self._firmwareType = 3         # MAV_AUTOPILOT_ARDUPILOTMEGA       3
+    #    self._supportsMissionItemInt = False
     # -----
 
         self.start()
@@ -94,7 +94,8 @@ class LinkInterface(threading.Thread):
             else:
                 print(msg)
 
-# Vehicle class methods
+    # Vehicle class methods
+    '''
     def id(self):
         return 1
 
@@ -135,7 +136,8 @@ class LinkInterface(threading.Thread):
 
     def supportsMissionItemInt(self):
         return self._supportsMissionItemInt
-# -----
+    '''
+    # -----
 
 
 if __name__ == '__main__':

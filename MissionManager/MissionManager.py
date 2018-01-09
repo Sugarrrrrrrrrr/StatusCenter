@@ -36,10 +36,9 @@ class TransactionType(Enum):
 
 
 class MissionManager(QObject):
-    def __init__(self, linkInterface):
-        self._vehicle = None  # _vehicle type: Vehicle
-        self._linkInterface = linkInterface  # type: LinkInterface
-        self._mav = self._linkInterface.mav
+    def __init__(self, vehicle):
+        self._vehicle = vehicle  # type: Vehicle
+        self._mav = self._vehicle.mav
         self._ackTimeoutTimer = None  # type: QTimer
         self._expectedAck = AckType.AckNone  # type: AckType
         self._transactionInProgress = TransactionType.TransactionNone  # type: TransactionType
@@ -167,8 +166,8 @@ class MissionManager(QObject):
 
 
         self._mav.mav.mission_item_send(
-            self._linkInterface.id(),  # target_system
-            self._linkInterface.defaultComponentId(),  # target_component
+            self._vehicle.id(),  # target_system
+            self._vehicle.defaultComponentId(),  # target_component
             0,  # seq
             3,  # frame                 MAV_FRAME_GLOBAL_RELATIVE_ALT 3
             16,  # command               MAV_CMD_NAV_WAYPOINT 16
@@ -358,7 +357,7 @@ class MissionManager(QObject):
     def _readTransactionComplete(self):
         # qCDebug(MissionManagerLog) << "_readTransactionComplete read sequence complete";
         self._mav.mav.mission_ack_send(
-            self._linkInterface.id(),  # target_system
+            self._vehicle.id(),  # target_system
             190,  # target_component          MAV_COMP_ID_MISSIONPLANNER  190
             0  # type                      MAV_MISSION_ACCEPTED          0
         )
@@ -415,7 +414,7 @@ class MissionManager(QObject):
 
         ardupilotHomePositionUpdate = False
         if not self._checkForExpectedAck(AckType.AckMissionItem):
-            if self._linkInterface.apmFirmware() and seq == 0:
+            if self._vehicle.apmFirmware() and seq == 0:
                 ardupilotHomePositionUpdate = True
             else:
                 # qCDebug(MissionManagerLog) << "_handleMissionItem dropping spurious item seq:command:current"
@@ -426,7 +425,7 @@ class MissionManager(QObject):
         #       << seq << command << isCurrentItem << ardupilotHomePositionUpdate;
 
         if ardupilotHomePositionUpdate:
-            self._linkInterface.setHomePosition(param5, param6, param7)
+            self._vehicle.setHomePosition(param5, param6, param7)
             return
 
         if seq in self._itemIndicesToRead:
@@ -446,7 +445,7 @@ class MissionManager(QObject):
             item.setAutoContinue(autoContinue)
             item.setIsCurrentItem(isCurrentItem)
 
-            if item.command() == 177 and not self._linkInterface.sendHomePositionToVehicle():  # MAV_CMD_DO_JUMP   177
+            if item.command() == 177 and not self._vehicle.sendHomePositionToVehicle():  # MAV_CMD_DO_JUMP   177
                 # Home is in position 0
                 item.setParam1(item.param1() + 1)
 
@@ -497,7 +496,7 @@ class MissionManager(QObject):
 
         if missionItemInt:
             self._mav.mav.mission_item_int_send(
-                self._linkInterface.id(),  # target_system
+                self._vehicle.id(),  # target_system
                 190,  # target_component      MAV_COMP_ID_MISSIONPLANNER      190
                 missionRequest.seq,  # seq
                 item.frame(),  # frame
@@ -514,7 +513,7 @@ class MissionManager(QObject):
             )
         else:
             self._mav.mav.mission_item_send(
-                self._linkInterface.id(),  # target_system
+                self._vehicle.id(),  # target_system
                 190,  # target_component      MAV_COMP_ID_MISSIONPLANNER      190
                 missionRequest.seq,  # seq
                 item.frame(),  # frame
@@ -633,7 +632,7 @@ class MissionManager(QObject):
         # Q_UNUSED(message);
 
         if self._cachedLastCurrentIndex != -1:
-            if self._linkInterface.flightMode() == self._linkInterface.missionFlightMode():
+            if self._vehicle.flightMode() == self._vehicle.missionFlightMode():
                 # qCDebug(MissionManagerLog) << "_handleHeartbeat updating lastCurrentIndex from cached value:"
                 #       << _cachedLastCurrentIndex;
                 self._lastCurrentIndex = self._cachedLastCurrentIndex
@@ -649,15 +648,15 @@ class MissionManager(QObject):
         # qCDebug(MissionManagerLog) << "_requestNextMissionItem sequenceNumber:retry" << _itemIndicesToRead[0]
         #       << _retryCount;
 
-        if self._linkInterface.supportsMissionItemInt():
+        if self._vehicle.supportsMissionItemInt():
             self._mav.mav.mission_request_int_send(
-                self._linkInterface.id(),  # target_system
+                self._vehicle.id(),  # target_system
                 190,  # target_component      MAV_COMP_ID_MISSIONPLANNER      190
                 self._itemIndicesToRead[0]  # seq
             )
         else:
             self._mav.mav.mission_request_send(
-                self._linkInterface.id(),  # target_system
+                self._vehicle.id(),  # target_system
                 190,  # target_component      MAV_COMP_ID_MISSIONPLANNER      190
                 self._itemIndicesToRead[0]  # seq
             )
@@ -770,7 +769,7 @@ class MissionManager(QObject):
     def _requestList(self):
         # qCDebug(MissionManagerLog) << "_requestList retry count" << _retryCount;
         self._mav.mav.mission_request_list_send(
-            self._linkInterface.id(),           # target_system
+            self._vehicle.id(),           # target_system
             190                                 # target_component      MAV_COMP_ID_MISSIONPLANNER      190
         )
         self._startAckTimeout(AckType.AckMissionCount)
@@ -780,7 +779,7 @@ class MissionManager(QObject):
         # qCDebug(MissionManagerLog) << "_writeMissionCount count:_retryCount" << _writeMissionItems.count()
         #       << _retryCount;
         self._mav.mav.mission_count_send(
-            self._linkInterface.id(),           # target_system
+            self._vehicle.id(),           # target_system
             190,                                # target_component      MAV_COMP_ID_MISSIONPLANNER      190
             len(self._writeMissionItems)        # count
         )
@@ -835,7 +834,7 @@ class MissionManager(QObject):
         self.progressPct.emit(0)
 
         self._mav.mav.mission_clear_all_send(
-            self._linkInterface.id(),           # target_system
+            self._vehicle.id(),           # target_system
             190                                 # target_component          MAV_COMP_ID_MISSIONPLANNER      190
         )
         self._startAckTimeout(AckType.AckMissionClearAll)
