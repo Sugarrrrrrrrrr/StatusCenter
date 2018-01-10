@@ -31,12 +31,12 @@ class Vehicle(QObject):
     def handleMsg(self, msg: MAVLink_message):
         msgType = msg.get_type()
 
-        def _handleHeardbeat(msg: MAVLink_heartbeat_message):
+        def _handleHeardbeat():
             if msg.get_srcComponent() != self._defaultComponentId:
                 print('error: Vehicle._handleHeardbeat compid error')
                 return
 
-            heartbeat = msg
+            heartbeat = msg                                                 # type: MAVLink_heartbeat_message
 
             newArmed = heartbeat.base_mode & 128    # MAV_MODE_FLAG_DECODE_POSITION_SAFETY      128
             if self._armed != newArmed:
@@ -62,19 +62,21 @@ class Vehicle(QObject):
                 if previousFlightMode != self.flightMode():
                     self.flightModeChanged.emit(self.flightMode())
 
-        def _handleHomePosition(msg: MAVLink_home_position_message):
-            homePos = msg
-            newHomePosition = QGeoCoordinate(homePos.latitude / 10000000, homePos.longitude / 10000000, homePos.altitude / 1000)
+        def _handleHomePosition():
+            homePos = msg                                                   # type: MAVLink_home_position_message
+            newHomePosition = QGeoCoordinate(homePos.latitude / 10000000,
+                                             homePos.longitude / 10000000,
+                                             homePos.altitude / 1000)
             self._setHomePosition(newHomePosition)
 
-        def _handleDefault(msg):
+        def _handleDefault():
             pass
 
         switcher = {
             'HEARTBEAT': _handleHeardbeat,
             'HOME_POSITION': _handleHomePosition,
         }
-        switcher.get(msgType, _handleDefault)(msg)
+        switcher.get(msgType, _handleDefault)()
 
         self.mavlinkMessageReceived.emit(msg)
 
