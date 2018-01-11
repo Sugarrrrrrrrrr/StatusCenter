@@ -1,11 +1,10 @@
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
-from PyQt5.QtPositioning import QGeoCoordinate
-
 from enum import Enum
 from typing import List
 
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt5.QtPositioning import QGeoCoordinate
+
 from MissionManager.MissionItem import MissionItem
-from comm.LinkInterface import LinkInterface
 
 
 class ErrorCode(Enum):

@@ -1,24 +1,29 @@
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
 from PyQt5.QtPositioning import QGeoCoordinate
 from parse.dialects.v10.ardupilotmega import MAVLink_message, MAVLink_heartbeat_message, MAVLink_home_position_message
-
+from parse.mavutil import mavfile
+from LinkInterface import LinkInterface
 
 class Vehicle(QObject):
-    def __init__(self, app, link, vehicleId=1, defaultComponentId=1, parent=None):
+    def __init__(self, app, link, vehicleId=1, defaultComponentId=1, vehicle_name=None, parent=None):
         super().__init__(parent=parent)
         self._app = app
-        self._link = link
-        self._mav = link.mav
+        self._link = link                           # type: LinkInterface
+        self._mav = link.mav                        # type: mavfile
 
         self._firmwareType = 3                      # MAV_AUTOPILOT_ARDUPILOTMEGA       3
         self._supportsMissionItemInt = False
         self._id = vehicleId
         self._defaultComponentId = defaultComponentId
+        self.vehicle_name = vehicle_name
 
         self._homePosition = None
         self._armed = None
         self._base_mode = 0
         self._custom_mode = 0
+
+        self._link.messageReceived.connect(self._mavlinkMessageReceived)
+        print(self.vehicle_name)
 
     def __del__(self):
         pass
@@ -28,7 +33,8 @@ class Vehicle(QObject):
     armedChanged = pyqtSignal(int)
     flightModeChanged = pyqtSignal(object)
 
-    def handleMsg(self, msg: MAVLink_message):
+    @pyqtSlot(object)
+    def _mavlinkMessageReceived(self, msg: MAVLink_message):
         msgType = msg.get_type()
 
         def _handleHeardbeat():
@@ -41,7 +47,7 @@ class Vehicle(QObject):
             newArmed = heartbeat.base_mode & 128    # MAV_MODE_FLAG_DECODE_POSITION_SAFETY      128
             if self._armed != newArmed:
                 self._armed = newArmed
-                self.armedChanged(self._armed)
+                self.armedChanged.emit(self._armed)
 
                 # We are transitioning to the armed state, begin tracking trajectory points for the map
                 if self._armed:
@@ -80,24 +86,6 @@ class Vehicle(QObject):
 
         self.mavlinkMessageReceived.emit(msg)
 
-    def id(self):
-        return self._id
-
-    def defaultComponentId(self):
-        return self._defaultComponentId
-
-    def flightMode(self):
-        return self._base_mode, self._custom_mode
-
-    def apmFirmware(self):
-        return self._firmwareType == 3              # MAV_AUTOPILOT_ARDUPILOTMEGA       3
-
-    def px4Firmware(self):
-        return self._firmwareType == 12             # MAV_AUTOPILOT_PX4                 12
-
-    def genericFirmware(self):
-        return not self.apmFirmware() and not self.px4Firmware()
-
     def _setHomePosition(self, homeCoord):
         if homeCoord != self._homePosition:
             self._homePosition = homeCoord
@@ -117,6 +105,7 @@ class Vehicle(QObject):
             # This is the mavlink spec default.
             return False
 
+# get member parameter
     def flightMode(self):
         return 1
 
@@ -126,5 +115,36 @@ class Vehicle(QObject):
     def supportsMissionItemInt(self):
         return self._supportsMissionItemInt
 
+    def flightMode(self):
+        return self._base_mode, self._custom_mode
+
+    def apmFirmware(self):
+        return self._firmwareType == 3              # MAV_AUTOPILOT_ARDUPILOTMEGA       3
+
+    def px4Firmware(self):
+        return self._firmwareType == 12             # MAV_AUTOPILOT_PX4                 12
+
+    def genericFirmware(self):
+        return not self.apmFirmware() and not self.px4Firmware()
+
+    def id(self):
+        return self._id
+
+    def defaultComponentId(self):
+        return self._defaultComponentId
+
     def getMav(self):
         return self._mav
+
+    def getLink(self):
+        return self._link
+
+# send message
+    def sendHearbet(self):
+        self._mav.mav.heartbeat_send(
+            6,              # type              MAV_TYPE_GCS                6
+            8,              # autopilot         MAV_AUTOPILOT_INVALID       8
+            192,            # base_mode         MAV_MODE_MANUAL_ARMED     192
+            0,              # custom_mode
+            4               # system_status     MAV_STATE_ACTIVE            4
+        )

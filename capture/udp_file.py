@@ -67,7 +67,7 @@ class multi_mav_udp(object):
     def write(self, buf):
         if len(self.addr_list):
             for addr in self.addr_list:
-                print(buf, addr)
+                # print(buf, addr)
                 self.udpsocket.sendto(buf, addr)
 
 

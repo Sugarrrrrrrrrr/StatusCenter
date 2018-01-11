@@ -1,4 +1,4 @@
-from comm.LinkManager import LinkManager
+from scToolbox import LinkManager
 from scToolbox import scToolbox
 from scApplication import scApplication
 from parse import mavutil
@@ -34,25 +34,27 @@ if __name__ == '__main__':
     
     
     b = b"\xfe\x1e\x18\x01\x01\x18\x00\x00\x00\x00\x00\x00\x00\x00\x933\xc5\r\x84\xca\x8aC\x96&\x02\x00\x0f'\xff\xff\x00\x00\x00\x00\x01\x00|\xd6"
+    b_heartbeat = b'\xfe\t{\x01\x01\x00\x00\x00\x00\x00\x02\x03Q\x03\x03"\r'
     m = mf.mav.decode(bytearray(b))
+    m_heartbeat = mf.mav.decode(bytearray(b_heartbeat))
     m_t = m
 
     us = udp_send()
 
-    for i in range(100000):
-        n = 10
-        if i%n == 0:
+    N = 100000 #- 99999
+    for i in range(N):
+        n1 = 10
+        n2 = 100
+        if i % n1 == 0:
             m1 = msg_x_y(m, i*5, i*5)
             us.send(m1.pack(mf.mav), '192.168.42.128')
-            #r1 = random.random()*100-50
-            #r2 = random.random()*100-50
-            #print(r1, r2)
-            #m2 = msg_x_y(m_t, int(r1), int(r2))
+            
             m2 = msg_x_y(m, -i*5-100, -i*5)
-            #m_t = m2
             us.send(m2.pack(mf.mav), '192.168.42.255')
-            print(i/n)
-
+            print(i/n1)
+        if i % n2 == 0:
+            us.send(b_heartbeat, '192.168.42.128')
+            us.send(b_heartbeat, '192.168.42.255')
 
     #for i in range(100):
     #    udp_send(str(time.time()).encode('utf-8'))
