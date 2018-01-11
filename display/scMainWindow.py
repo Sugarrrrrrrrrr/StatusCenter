@@ -138,7 +138,7 @@ class scMap(QWidget):
             lng1 = None
             lng2 = None
 
-            for linkInt in self.app.toolbox.linkMgr.links:
+            for linkInt in self.app.toolbox.getLinkManager().links:
                 if lat1 is None or linkInt.uav_lat < lat1:
                     lat1 = linkInt.uav_lat
                 if lat2 is None or linkInt.uav_lat > lat2:

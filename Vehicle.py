@@ -1,21 +1,35 @@
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
 from PyQt5.QtPositioning import QGeoCoordinate
 from parse.dialects.v10.ardupilotmega import MAVLink_message, MAVLink_heartbeat_message, MAVLink_home_position_message
 from parse.mavutil import mavfile
 from LinkInterface import LinkInterface
 
+
 class Vehicle(QObject):
-    def __init__(self, app, link, vehicleId=1, defaultComponentId=1, vehicle_name=None, parent=None):
+    def __init__(self, app, link, vehicleId, defaultComponentId, firmwareType, vehicleType, firmwarePluginManager,
+                 vehicle_name=None, parent=None):
         super().__init__(parent=parent)
         self._app = app
         self._link = link                           # type: LinkInterface
         self._mav = link.mav                        # type: mavfile
 
-        self._firmwareType = 3                      # MAV_AUTOPILOT_ARDUPILOTMEGA       3
-        self._supportsMissionItemInt = False
         self._id = vehicleId
         self._defaultComponentId = defaultComponentId
+        self._firmwareType = firmwareType                       # MAV_AUTOPILOT_ARDUPILOTMEGA       3
+        self._vehicleType = vehicleType
+        self._firmwarePluginManager = firmwarePluginManager     # type: FirmwarePluginManager
+
+        self._firmwarePlugin = None
+        self._supportsMissionItemInt = False
+        self._offlineEditingVehicle = False
         self.vehicle_name = vehicle_name
+
+        self._sendMessageMultipleList = []          # List of messages being sent multiple times
+        self._sendMessageMultipleRetries = 5
+        self._sendMessageMultipleIntraMessageDelay = 500
+
+        self._sendMultipleTimer = QTimer()
+        self._nextSendMessageMultipleIndex = 0
 
         self._homePosition = None
         self._armed = None
@@ -23,7 +37,20 @@ class Vehicle(QObject):
         self._custom_mode = 0
 
         self._link.messageReceived.connect(self._mavlinkMessageReceived)
-        print(self.vehicle_name)
+
+        self._commonInit()
+
+        self._firmwarePlugin.initializeVehicle(self)
+
+        self._sendMultipleTimer.start(self._sendMessageMultipleIntraMessageDelay)
+        self._sendMultipleTimer.timeout.connect(self._sendMessageMultipleNext)
+
+    def _commonInit(self):
+        print(self._firmwarePluginManager)
+        self._firmwarePlugin = self._firmwarePluginManager.firmwarePluginForAutopilot(self._firmwareType,
+                                                                                      self._vehicleType)
+        # MisssionManager
+        pass
 
     def __del__(self):
         pass
@@ -105,6 +132,26 @@ class Vehicle(QObject):
             # This is the mavlink spec default.
             return False
 
+    # Property accesors
+    def id(self):
+        return self._id
+
+    def firmwareType(self):
+        return self._firmwareType
+
+    def vehicleType(self):
+        return self._vehicleType
+
+    def vehicleTypeName(self):
+        pass
+
+    def defaultComponentId(self):
+        return self._defaultComponentId
+
+    # Provides access to the Firmware Plugin for this Vehicle
+    def firmwarePlugin(self):
+        return self._firmwarePlugin
+
 # get member parameter
     def flightMode(self):
         return 1
@@ -127,11 +174,8 @@ class Vehicle(QObject):
     def genericFirmware(self):
         return not self.apmFirmware() and not self.px4Firmware()
 
-    def id(self):
-        return self._id
-
-    def defaultComponentId(self):
-        return self._defaultComponentId
+    def isOfflineEditingVehicle(self):
+        return self._offlineEditingVehicle
 
     def getMav(self):
         return self._mav
@@ -148,3 +192,37 @@ class Vehicle(QObject):
             0,              # custom_mode
             4               # system_status     MAV_STATE_ACTIVE            4
         )
+
+    def requestDataStream(self, stream, rate, sendMultiple=True):       # MAV_DATA_STREAM stream
+        msg = self._mav.mav.request_data_stream_encode(
+            self.id(),                  # target_system
+            self._defaultComponentId,   # target_component
+            stream,                     # req_stream_id
+            rate,                       # req_message_rate
+            1                           # start_stop                : 1 to start sending, 0 to stop sending. (uint8_t)
+        )
+        if sendMultiple:
+            # We use sendMessageMultiple since we really want these to make it to the vehicle
+            self.sendMessageMultiple(msg)
+        else:
+            self._mav.mav.send(msg)
+
+    def sendMessageMultiple(self, msg):
+        info = (msg, self._sendMessageMultipleRetries)
+        self._sendMessageMultipleList.append(info)
+
+    def _sendMessageMultipleNext(self):
+        if self._nextSendMessageMultipleIndex < len(self._sendMessageMultipleList):
+            # qCDebug(VehicleLog) << "_sendMessageMultipleNext:"
+            #       << _sendMessageMultipleList[_nextSendMessageMultipleIndex].message.msgid;
+            self._mav.mav.send(self._sendMessageMultipleList[self._nextSendMessageMultipleIndex][0])
+
+            if self._sendMessageMultipleList[self._nextSendMessageMultipleIndex][1] - 1 < 0:
+                self._sendMessageMultipleList.pop(self._nextSendMessageMultipleIndex)
+            else:
+                info = self._sendMessageMultipleList[self._nextSendMessageMultipleIndex]
+                self._sendMessageMultipleList[self._nextSendMessageMultipleIndex] = (info[0], info[1] - 1)
+                self._nextSendMessageMultipleIndex += 1
+
+            if self._nextSendMessageMultipleIndex >= len(self._sendMessageMultipleList):
+                self._nextSendMessageMultipleIndex = 0

@@ -1,7 +1,11 @@
 import json
+from typing import List
+
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QTimer
+
 from LinkInterface import LinkInterface
 from Vehicle import Vehicle
+from FirmwarePlugin import FirmwarePluginFactoryRegister, FirmwarePlugin, FirmwarePluginFactory, APMFirmwarePluginFactory
 
 
 class scToolbox(QObject):
@@ -10,9 +14,16 @@ class scToolbox(QObject):
         self.parent = parent
         self.app = app
 
-        if not self.parent:
-            self._multiVehicleManager = MultiVehicleManager(self.app, parent=self)
-            self.linkMgr = LinkManager(self.app, parent=self)
+        if not parent:
+            self._firmwarePluginMgr = FirmwarePluginManager(self.app, parent=self)
+            self._multiVehicleMgr = MultiVehicleManager(self.app, parent=self)
+            self._linkMgr = LinkManager(self.app, parent=self)
+
+    def getLinkManager(self):
+        return self._linkMgr
+
+    def getFirmwarePluginManager(self):
+        return self._firmwarePluginMgr
 
 
 class LinkManager(scToolbox):
@@ -31,7 +42,7 @@ class LinkManager(scToolbox):
             link = LinkInterface(uav, self.app, self)
             self.links.append(link)
 
-            link.vehicleHeartbeatInfo.connect(parent._multiVehicleManager._vehicleHeartbeatInfo)
+            link.vehicleHeartbeatInfo.connect(parent._multiVehicleMgr._vehicleHeartbeatInfo)
 
     def update_links_name(self):
         with open('.config', 'r') as file:
@@ -54,6 +65,8 @@ class MultiVehicleManager(scToolbox):
         self._vehicles = []
         self._ignoreVehicleIds = []
         self._gcsHeartbeatEnabled = True
+
+        self._firmwarePluginManager = parent.getFirmwarePluginManager()
 
         self._gcsHeartbeatTimer = QTimer()
         self._gcsHeartbeatRateMSecs = 1000
@@ -116,7 +129,8 @@ class MultiVehicleManager(scToolbox):
                 break
             n -= 1
 
-        vehicle = Vehicle(self.app, link, vehicleId, componentId, vehicle_name=vehicle_name)
+        vehicle = Vehicle(self.app, link, vehicleId, componentId, vehicleFirmwareType, vehicleType,
+                          self._firmwarePluginManager, vehicle_name=vehicle_name)
         # connect(vehicle, &Vehicle::allLinksInactive, this, &MultiVehicleManager::_deleteVehiclePhase1);
         # connect(vehicle->parameterManager(), &ParameterManager::parametersReadyChanged,
         #                                               this, &MultiVehicleManager::_vehicleParametersReadyChanged);
@@ -159,3 +173,79 @@ class MultiVehicleManager(scToolbox):
                 self._gcsHeartbeatTimer.start()
             else:
                 self._gcsHeartbeatTimer.stop()
+
+
+class FirmwarePluginManager(scToolbox):
+    # FirmwarePluginManager is a singleton which is used to return the correct FirmwarePlugin for a MAV_AUTOPILOT type.
+    def __init__(self, app, parent):
+        super().__init__(app, parent=parent)
+
+        self._genericFirmwarePlugin = None
+        self._supportedFirmwareTypes = []
+
+        # Register Plugin Factories
+        APMFirmwarePluginFactory()
+        FirmwarePluginFactory()
+
+    def __del__(self):
+        del self._genericFirmwarePlugin
+
+    # Returns list of firmwares which are supported by the system
+    def supportedFirmwareTypes(self) -> List[int]:                      # MAV_AUTOPILOT
+        if not self._supportedFirmwareTypes:                            # self._supportedFirmwareTypes is []
+            factoryList = FirmwarePluginFactoryRegister.instance(None).pluginFactories()
+            # type: List[FirmwarePluginFactory]
+            for factory in factoryList:
+                self._supportedFirmwareTypes.append(factory.supportedFirmwareTypes())
+            self._supportedFirmwareTypes.append(0)                  # MAV_AUTOPILOT_GENERIC     0
+        return self._supportedFirmwareTypes
+
+    # Returns the list of supported vehicle types for the specified firmware
+    def supportedVehicleTypes(self, firmwareType) -> List[int]:         # MAV_TYPE
+        vehicleTypes = []
+        factory = self._findPluginFactory(firmwareType)
+        if factory:
+            vehicleTypes = factory.supportedVehicleTypes()
+        elif firmwareType == 0:                                     # MAV_AUTOPILOT_GENERIC     0
+            vehicleTypes = [
+                1,          # MAV_TYPE_FIXED_WING
+                2,          # MAV_TYPE_QUADROTOR
+                20,         # MAV_TYPE_VTOL_QUADROTOR
+                10,         # MAV_TYPE_GROUND_ROVER
+                12          # MAV_TYPE_SUBMARINE
+            ]
+        else:
+            # qWarning() << "Request for unknown firmware plugin factory" << firmwareType;
+            pass
+
+        return vehicleTypes
+
+    # Returns appropriate plugin for autopilot type.
+    #   @param firmwareType Type of firmwware to return plugin for.
+    #   @param vehicleType Vehicle type to return plugin for.
+    # @return Singleton FirmwarePlugin instance for the specified MAV_AUTOPILOT.
+    def firmwarePluginForAutopilot(self, firmwareType, vehicleType):    # MAV_AUTOPILOT, MAV_TYPE vehicleType
+        factory = self._findPluginFactory(firmwareType)                 # type: FirmwarePluginFactory
+        plugin = None                                                   # type: FirmwarePlugin
+
+        if factory:
+            plugin = factory.firmwarePluginForAutopilot(firmwareType, vehicleType)
+        elif firmwareType != 0:                                         # MAV_AUTOPILOT_GENERIC     0
+            # qWarning() << "Request for unknown firmware plugin factory" << firmwareType;
+            pass
+
+        if not plugin:
+            # Default plugin fallback
+            if not self._genericFirmwarePlugin:
+                self._genericFirmwarePlugin = FirmwarePlugin()
+            plugin = self._genericFirmwarePlugin
+
+        return plugin
+
+    def _findPluginFactory(self, firmwareType) -> FirmwarePluginFactory:
+        factoryList = FirmwarePluginFactoryRegister.instance(None).pluginFactories()    # type: List[FirmwarePluginFactory]
+        # Find the plugin which supports this vehicle
+        for factory in factoryList:
+            if firmwareType in factory.supportedFirmwareTypes():
+                return factory
+        return None
