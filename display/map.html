@@ -22,6 +22,10 @@
                     bridge.signal_test.connect(function () {
                         alert('sendText');
                     });
+
+                    bridge.positionChanged.connect(function (uav_name, lat, lng) {
+                        moveUav(uav_name, lat, lng)
+                    });
                 });
             };
 
@@ -38,9 +42,74 @@
                 });
             }
             
-            function fitBounds(lat1, lat2, lng1, lng2) {
+            function fitBounds() {
+                var lat1, lat2, lng1, lng2
+                for (var key in uavs){
+                    uav = uavs[key];
+                    if( lat1 === undefined || uav.position.lat() < lat1){
+                        lat1 = uav.position.lat();
+                    }
+                    if (lat2 === undefined || uav.position.lat()>lat2){
+                        lat2 = uav.position.lat();
+                    }
+                    if (lng1 === undefined || uav.position.lng() < lng1){
+                        lng1 = uav.position.lng();
+                    }
+                    if (lng2 === undefined || uav.position.lng() > lng2){
+                        lng2 = uav.position.lng();
+                    }
+                }
                 var bounds =  new google.maps.LatLngBounds({lat: lat1, lng: lng1}, {lat: lat2, lng: lng2})
                 map.fitBounds(bounds)
+            }
+
+            String.prototype.format= function(){
+                var args = arguments;
+                return this.replace(/\{(\d+)\}/g,function(s,i){
+                return args[i];
+                });
+            }
+
+            var uavs = [];
+            var icons = {
+                "uav_0"  :   "data/bluecopter.png",
+                "uav_1"  :   "data/redcopter.png",
+                "uav_2"  :   "data/greencopter.png",
+                "uav_3"  :   "data/blueheli.png",
+                'default': "data/redsinglecopter.png"
+            };
+
+            function moveUav(uav_name, lat, lng) {
+                if(uav_name in uavs){
+                    var uav = uavs[uav_name];
+                    uav.setPosition({lat: lat, lng: lng});
+
+                    if(!map.getBounds().contains(uav.position)){
+                        fitBounds()
+                    }
+                }
+                else{
+                    createUav(uav_name, lat, lng);
+                }
+            }
+
+            function createUav(uav_name, lat, lng) {
+                var icon = getIconByName(uav_name)
+                var uav = new google.maps.Marker({
+                    position: {lat: lat, lng: lng},
+                    map: map,
+                    icon: icon
+                });
+                uavs[uav_name] = uav;
+                fitBounds()
+            }
+
+            function getIconByName(uav_name) {
+                if(uav_name in icons){
+                    return icons[uav_name];
+                }
+                else
+                    return icons['default']
             }
         </script>
         <script async defer

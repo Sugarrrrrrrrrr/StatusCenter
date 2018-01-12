@@ -87,6 +87,7 @@ class LinkInterface(QThread):
             self.vehicleHeartbeatInfo.emit(self, msg.get_srcSystem(), msg.get_srcComponent(), msg.mavlink_version,
                                            msg.autopilot, msg.type)
 # old ------------------------------------------------------------------------------------------------------------------
+'''            
             if not self.marker_create:
                 self.marker_create = True
                 self.uav_lat = self.linkMgr.home_lat
@@ -109,6 +110,7 @@ class LinkInterface(QThread):
 
         else:
             print(msg)
+'''
 # ----------------------------------------------------------------------------------------------------------------------
 
 

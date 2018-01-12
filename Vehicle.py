@@ -46,9 +46,10 @@ class Vehicle(QObject):
         self._sendMultipleTimer.timeout.connect(self._sendMessageMultipleNext)
 
     def _commonInit(self):
-        print(self._firmwarePluginManager)
         self._firmwarePlugin = self._firmwarePluginManager.firmwarePluginForAutopilot(self._firmwareType,
                                                                                       self._vehicleType)
+
+        self.positionChanged.connect(self._app.sc_map.bridge.positionChanged)
         # MisssionManager
         pass
 
@@ -60,11 +61,13 @@ class Vehicle(QObject):
     armedChanged = pyqtSignal(int)
     flightModeChanged = pyqtSignal(object)
 
+    positionChanged = pyqtSignal(str, float, float)
+
     @pyqtSlot(object)
     def _mavlinkMessageReceived(self, msg: MAVLink_message):
         msgType = msg.get_type()
 
-        def _handleHeardbeat():
+        def _handle_Heardbeat():
             if msg.get_srcComponent() != self._defaultComponentId:
                 print('error: Vehicle._handleHeardbeat compid error')
                 return
@@ -95,19 +98,26 @@ class Vehicle(QObject):
                 if previousFlightMode != self.flightMode():
                     self.flightModeChanged.emit(self.flightMode())
 
-        def _handleHomePosition():
+        def _handle_Home_Position():
             homePos = msg                                                   # type: MAVLink_home_position_message
             newHomePosition = QGeoCoordinate(homePos.latitude / 10000000,
                                              homePos.longitude / 10000000,
                                              homePos.altitude / 1000)
             self._setHomePosition(newHomePosition)
 
+        def _handle_GPS_RAW_INT():
+            self.lat = msg.lat / 10000000
+            self.lng = msg.lon / 10000000
+
+            self.positionChanged.emit(self.vehicle_name, self.lat, self.lng)
+
         def _handleDefault():
             pass
 
         switcher = {
-            'HEARTBEAT': _handleHeardbeat,
-            'HOME_POSITION': _handleHomePosition,
+            'HEARTBEAT': _handle_Heardbeat,
+            'HOME_POSITION': _handle_Home_Position,
+            'GPS_RAW_INT': _handle_GPS_RAW_INT,
         }
         switcher.get(msgType, _handleDefault)()
 
