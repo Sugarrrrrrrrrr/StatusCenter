@@ -1,6 +1,7 @@
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
 from PyQt5.QtPositioning import QGeoCoordinate
-from parse.dialects.v10.ardupilotmega import MAVLink_message, MAVLink_heartbeat_message, MAVLink_home_position_message
+from parse.dialects.v10.ardupilotmega import MAVLink_message, MAVLink_heartbeat_message, MAVLink_home_position_message,\
+    MAVLink_sys_status_message, MAVLink_autopilot_version_message, MAVLink_vfr_hud_message, MAVLink_attitude_message
 from parse.mavutil import mavfile
 from LinkInterface import LinkInterface
 
@@ -28,6 +29,12 @@ class Vehicle(QObject):
         self._sendMessageMultipleRetries = 5
         self._sendMessageMultipleIntraMessageDelay = 500
 
+        self._mavCommandQueue = []
+        self._mavCommandAckTimer = QTimer()
+        self._mavCommandRetryCount = 0
+        self._mavCommandMaxRetryCount = 3
+        self._mavCommandAckTimeoutMSecs = 3000
+
         self._sendMultipleTimer = QTimer()
         self._nextSendMessageMultipleIndex = 0
 
@@ -35,12 +42,33 @@ class Vehicle(QObject):
         self._armed = None
         self._base_mode = 0
         self._custom_mode = 0
+        # battery
+        self._current_battery = None
+        self._voltage_battery = None
+        self._battery_remaining = None
+        # sensors
+        self._onboardControlSensorsPresent = None
+        self._onboardControlSensorsEnabled = None
+        self._onboardControlSensorsHealth = None
+        #
+        self._airSpeed = None
+        self._groundSpeed = None
+        self._climbRate = None
+        #  attitude
+        self._roll = None
+        self._pitch = None
+        self._heading = None
 
         self._link.messageReceived.connect(self._mavlinkMessageReceived)
 
         self._commonInit()
 
         self._firmwarePlugin.initializeVehicle(self)
+
+        # Send MAV_CMD ack timer
+        self._mavCommandAckTimer.setSingleShot(True)
+        self._mavCommandAckTimer.setInterval(self._mavCommandAckTimeoutMSecs)
+        self._mavCommandAckTimer.timeout.connect(self._sendMavCommandAgain)
 
         self._sendMultipleTimer.start(self._sendMessageMultipleIntraMessageDelay)
         self._sendMultipleTimer.timeout.connect(self._sendMessageMultipleNext)
@@ -98,12 +126,32 @@ class Vehicle(QObject):
                 if previousFlightMode != self.flightMode():
                     self.flightModeChanged.emit(self.flightMode())
 
-        def _handle_Home_Position():
-            homePos = msg                                                   # type: MAVLink_home_position_message
-            newHomePosition = QGeoCoordinate(homePos.latitude / 10000000,
-                                             homePos.longitude / 10000000,
-                                             homePos.altitude / 1000)
-            self._setHomePosition(newHomePosition)
+        def _handle_SYS_STATUS():
+            sysStatus = msg                                                 # type: MAVLink_sys_status_message
+
+            # battery
+            if sysStatus.current_battery == -1:
+                self._current_battery = None
+            else:
+                # Current is in Amps, current_battery is 10 * milliamperes (1 = 10 milliampere)
+                self._current_battery = sysStatus.current_battery / 100
+
+            if sysStatus.voltage_battery == 0xffff:
+                self._voltage_battery = None
+            else:
+                self._voltage_battery = sysStatus.voltage_battery / 1000
+
+            if sysStatus.battery_remaining == -1:
+                self._battery_remaining = None
+            elif 0 <= sysStatus.battery_remaining <= 100:
+                self._battery_remaining = sysStatus.battery_remaining
+            else:
+                print('ERROR: battery remaining error %d' % sysStatus.battery_remaining)
+
+            # sensors
+                self._onboardControlSensorsPresent = sysStatus.onboard_control_sensors_present
+                self._onboardControlSensorsEnabled = sysStatus.onboard_control_sensors_enabled
+                self._onboardControlSensorsHealth = sysStatus.onboard_control_sensors_health
 
         def _handle_GPS_RAW_INT():
             self.lat = msg.lat / 10000000
@@ -111,13 +159,47 @@ class Vehicle(QObject):
 
             self.positionChanged.emit(self.vehicle_name, self.lat, self.lng)
 
+        def _handle_ATTITUDE():
+            attitude = msg                                                  # type: MAVLink_attitude_message
+            pi = 3.14159265358979323846
+
+            self._roll = attitude.roll * (180 / pi)
+            self._pitch = attitude.pitch * (180 / pi)
+            yaw = attitude.yaw * (180 / pi)
+            if yaw < 0:
+                yaw += 360
+            self._heading = yaw
+
+
+        def _handle_VFR_HUD():
+            vfrHud = msg                                                    # type: MAVLink_vfr_hud_message
+            self._airSpeed = vfrHud.airspeed
+            self._groundSpeed = vfrHud.groundspeed
+            self._climbRate = vfrHud.climb
+            self._heading = vfrHud.heading
+
+        def _handle_AUTOPILOT_VERSION():
+            autopilotVersion = msg                                          # type: MAVLink_autopilot_version_message
+            # _startPlanRequest
+
+        def _handle_Home_Position():
+            homePos = msg                                                   # type: MAVLink_home_position_message
+            newHomePosition = QGeoCoordinate(homePos.latitude / 10000000,
+                                             homePos.longitude / 10000000,
+                                             homePos.altitude / 1000)
+            self._setHomePosition(newHomePosition)
+
         def _handleDefault():
             pass
 
         switcher = {
-            'HEARTBEAT': _handle_Heardbeat,
-            'HOME_POSITION': _handle_Home_Position,
-            'GPS_RAW_INT': _handle_GPS_RAW_INT,
+            'HEARTBEAT':            _handle_Heardbeat,                      # #0
+            'SYS_STATUS':           _handle_SYS_STATUS,                     # #1
+            'GPS_RAW_INT':          _handle_GPS_RAW_INT,                    # #24
+            'ATTITUDE':             _handle_ATTITUDE,                       # #30
+            'VFR_HUD':              _handle_VFR_HUD,                        # #74
+            'AUTOPILOT_VERSION':    _handle_AUTOPILOT_VERSION,              # #148
+            'HOME_POSITION':        _handle_Home_Position,                  # #242
         }
         switcher.get(msgType, _handleDefault)()
 
@@ -163,17 +245,11 @@ class Vehicle(QObject):
         return self._firmwarePlugin
 
 # get member parameter
-    def flightMode(self):
-        return 1
-
     def missionFlightMode(self):
         return 1
 
     def supportsMissionItemInt(self):
         return self._supportsMissionItemInt
-
-    def flightMode(self):
-        return self._base_mode, self._custom_mode
 
     def apmFirmware(self):
         return self._firmwareType == 3              # MAV_AUTOPILOT_ARDUPILOTMEGA       3
@@ -192,6 +268,44 @@ class Vehicle(QObject):
 
     def getLink(self):
         return self._link
+
+# armed and flight mode
+    def setArmed(self, armed):
+        # We specifically use COMMAND_LONG:MAV_CMD_COMPONENT_ARM_DISARM since it is supported by more flight stacks.
+        self.sendMavCommand(self._defaultComponentId,
+                            400,                        # MAV_CMD_COMPONENT_ARM_DISARM
+                            True,                       # show error if fails
+                            1 if armed else 0)
+
+    def flightModeSetAvailable(self):
+        return self._firmwarePlugin.isCapable(self, 1 << 0)     # SetFlightModeCapability
+
+    def flightModes(self):
+        return self._firmwarePlugin.flightModes(self)
+
+    def flightMode(self):
+        return self._firmwarePlugin.flightMode(self._base_mode, self._custom_mode)
+
+    def setFlightMode(self, flightMode):
+        base_mode = 0
+        custom_mode = 0
+        # qDebug() << flightMode;
+        b, base_mode, custom_mode = self._firmwarePlugin.setFlightMode(flightMode, base_mode, custom_mode)
+        if b:
+            # setFlightMode will only set MAV_MODE_FLAG_CUSTOM_MODE_ENABLED in base_mode, we need to move back in the
+            #  existing states.
+            newBaseMode = self._base_mode & ~1       # MAV_MODE_FLAG_DECODE_POSITION_CUSTOM_MODE    1
+            newBaseMode |= base_mode
+            self._mav.mav.set_mode_send(
+                self.id(),                  # target_system
+                newBaseMode,                # base_mode
+                custom_mode                 # custom_mode
+            )
+
+        else:
+            # qWarning() << "FirmwarePlugin::setFlightMode failed, flightMode:" << flightMode;
+            pass
+
 
 # send message
     def sendHearbet(self):
@@ -236,3 +350,77 @@ class Vehicle(QObject):
 
             if self._nextSendMessageMultipleIndex >= len(self._sendMessageMultipleList):
                 self._nextSendMessageMultipleIndex = 0
+
+    def _sendMavCommand(self, component, command, showError, param1=0, param2=0, param3=0, param4=0, param5=0, param6=0,
+                        param7=0):
+        entry = {
+            'component': component,
+            'command': command,
+            'showError': showError,
+            'param1': param1,
+            'param2': param2,
+            'param3': param3,
+            'param4': param4,
+            'param5': param5,
+            'param6': param6,
+            'param7': param7,
+        }
+        self._mavCommandQueue.append(entry)
+        if len(self._mavCommandQueue) == 1:
+            self._mavCommandRetryCount = 0
+            self._sendMavCommandAgain()
+
+    def _sendMavCommandAgain(self):
+        if not len(self._mavCommandQueue):
+            # qWarning() << "Command resend with no commands in queue";
+            self._mavCommandAckTimer.stop()
+            return
+
+        queuedCommand = self._mavCommandQueue[0]
+        if self._mavCommandRetryCount > self._mavCommandMaxRetryCount:
+            if queuedCommand['command'] == 520:             # MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES
+                # We aren't going to get a response back for capabilities, so stop waiting for it before we ask for
+                #       mission items
+                # _setCapabilities(0)
+                # _startPlanRequest()
+                pass
+            # emit mavCommandResult(_id, queuedCommand.component, queuedCommand.command, MAV_RESULT_FAILED,
+                # true /* noResponsefromVehicle */);
+            self._mavCommandQueue.pop(0)
+            self._sendNextQueuedMavCommand()
+            return
+        self._mavCommandRetryCount += 1
+
+        if self._mavCommandRetryCount > 1:
+            # We always let AUTOPILOT_CAPABILITIES go through multiple times even if we don't get acks. This is because
+            # we really need to get capabilities and version info back over a lossy link.
+            if queuedCommand['command'] != 520:             # MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES
+                if self.px4Firmware():
+                    pass
+                else:
+                    if queuedCommand['command'] != 500:     #MAV_CMD_START_RX_PAIR
+                        # The implementation of this command comes from the IO layer and is shared across stacks. So
+                        # for other firmwares we aren't really sure whether they are correct or not.
+                        return
+            # qCDebug(VehicleLog) << "Vehicle::_sendMavCommandAgain retrying command:_mavCommandRetryCount" <<
+                        # queuedCommand.command << _mavCommandRetryCount;
+        self._mavCommandAckTimer.start()
+
+        self._mav.mav.command_long_send(
+            self.id(),                          # target_system
+            self._defaultComponentId,           # target_component
+            queuedCommand['command'],           # command
+            0,                                  # confirmation
+            queuedCommand['param1'],            # param1
+            queuedCommand['param2'],            # param2
+            queuedCommand['param3'],            # param3
+            queuedCommand['param4'],            # param4
+            queuedCommand['param5'],            # param5
+            queuedCommand['param6'],            # param6
+            queuedCommand['param7']             # param7
+        )
+
+    def _sendNextQueuedMavCommand(self):
+        if len(self._mavCommandQueue):
+            self._mavCommandRetryCount = 0
+            self._sendMavCommandAgain()
