@@ -42,6 +42,10 @@ class Vehicle(QObject):
         self._armed = None
         self._base_mode = 0
         self._custom_mode = 0
+        # GPS
+        self.lat = None
+        self.lng = None
+        self.alt = None
         # battery
         self._current_battery = None
         self._voltage_battery = None
@@ -58,6 +62,9 @@ class Vehicle(QObject):
         self._roll = None
         self._pitch = None
         self._heading = None
+
+        self._flying = False
+        self._landing = False
 
         self._link.messageReceived.connect(self._mavlinkMessageReceived)
 
@@ -87,7 +94,7 @@ class Vehicle(QObject):
     mavlinkMessageReceived = pyqtSignal(object)
     _homePositionChanged = pyqtSignal(object)
     armedChanged = pyqtSignal(int)
-    flightModeChanged = pyqtSignal(object)
+    flightModeChanged = pyqtSignal(str)
 
     positionChanged = pyqtSignal(str, float, float)
 
@@ -156,6 +163,7 @@ class Vehicle(QObject):
         def _handle_GPS_RAW_INT():
             self.lat = msg.lat / 10000000
             self.lng = msg.lon / 10000000
+            self.alt = msg.alt / 1000
 
             self.positionChanged.emit(self.vehicle_name, self.lat, self.lng)
 
@@ -244,6 +252,22 @@ class Vehicle(QObject):
     def firmwarePlugin(self):
         return self._firmwarePlugin
 
+    def flying(self):
+        return self._flying
+
+    def _setFlying(self, flying):
+        if self._flying != flying:
+            self._flying = flying
+            # emit flyingChanged(flying);
+
+    def landing(self):
+        return self._landing
+
+    def _setLanding(self, landing):
+        if self.armd() and self._landing != landing:
+            self._landing = landing
+            # emit landingChanged(landing)
+
 # get member parameter
     def missionFlightMode(self):
         return 1
@@ -270,6 +294,9 @@ class Vehicle(QObject):
         return self._link
 
 # armed and flight mode
+    def armd(self):
+        return self._armed
+
     def setArmed(self, armed):
         # We specifically use COMMAND_LONG:MAV_CMD_COMPONENT_ARM_DISARM since it is supported by more flight stacks.
         self.sendMavCommand(self._defaultComponentId,
@@ -351,7 +378,7 @@ class Vehicle(QObject):
             if self._nextSendMessageMultipleIndex >= len(self._sendMessageMultipleList):
                 self._nextSendMessageMultipleIndex = 0
 
-    def _sendMavCommand(self, component, command, showError, param1=0, param2=0, param3=0, param4=0, param5=0, param6=0,
+    def sendMavCommand(self, component, command, showError, param1=0, param2=0, param3=0, param4=0, param5=0, param6=0,
                         param7=0):
         entry = {
             'component': component,
