@@ -4,6 +4,7 @@ from parse.dialects.v10.ardupilotmega import MAVLink_message, MAVLink_heartbeat_
     MAVLink_sys_status_message, MAVLink_autopilot_version_message, MAVLink_vfr_hud_message, MAVLink_attitude_message
 from parse.mavutil import mavfile
 from LinkInterface import LinkInterface
+from MissionManager.MissionManager import MissionManager
 
 
 class Vehicle(QObject):
@@ -19,6 +20,7 @@ class Vehicle(QObject):
         self._firmwareType = firmwareType                       # MAV_AUTOPILOT_ARDUPILOTMEGA       3
         self._vehicleType = vehicleType
         self._firmwarePluginManager = firmwarePluginManager     # type: FirmwarePluginManager
+        self._missionManager = None
 
         self._firmwarePlugin = None
         self._supportsMissionItemInt = False
@@ -83,13 +85,14 @@ class Vehicle(QObject):
     def _commonInit(self):
         self._firmwarePlugin = self._firmwarePluginManager.firmwarePluginForAutopilot(self._firmwareType,
                                                                                       self._vehicleType)
-
         self.positionChanged.connect(self._app.sc_map.bridge.positionChanged)
         # MisssionManager
-        pass
+        self._missionManager = MissionManager(self)
 
     def __del__(self):
-        pass
+        # qCDebug(VehicleLog) << "~Vehicle" << this;
+        del self._missionManager
+        self._missionManager = None
 
     mavlinkMessageReceived = pyqtSignal(object)
     _homePositionChanged = pyqtSignal(object)
@@ -298,6 +301,10 @@ class Vehicle(QObject):
 
     def getLink(self):
         return self._link
+
+# managers
+    def missionManager(self):
+        return self._missionManager
 
 # armed and flight mode
     def armd(self):

@@ -1,4 +1,6 @@
 from PyQt5.QtCore import QObject, QThread
+from PyQt5.QtPositioning import QGeoCoordinate
+
 from typing import List
 
 from Vehicle import Vehicle
@@ -735,11 +737,37 @@ class ArduCopterFirmwarePlugin(APMFirmwarePlugin):
     def guidedModeTakeoff(self, vehicle):
         self._guidedModeTakeoff(vehicle)
 
-    def guidedModeGotoLocation(self, vehicle, gotoCoord):
-        pass
+    def guidedModeGotoLocation(self, vehicle, gotoCoord: QGeoCoordinate):
+        if vehicle.alt is None:
+            # qgcApp()->showMessage(QStringLiteral("Unable to go to location, vehicle position not known."));
+            return
+        coordWithAltitude = gotoCoord
+        coordWithAltitude.setAltitude(vehicle.alt)
+        vehicle.missionManager().writeArduPilotGuidedMissionItem(coordWithAltitude, False)  # altChangeOnly
 
     def guidedModeChangeAltitude(self, vehicle, altitudeChange):
-        pass
+        if vehicle.alt is None:
+            # qgcApp()->showMessage(QStringLiteral("Unable to go to location, vehicle position not known."));
+            return
+        self.setGuidedMode(vehicle, True)
+        vehicle._mav.mav.set_position_target_local_ned_send(
+            0,                              # time_boot_ms
+            vehicle.id(),                   # target_system             : System ID (uint8_t)
+            vehicle.defaultComponentId(),   # target_component          : Component ID (uint8_t)
+            7,                              # coordinate_frame          : MAV_FRAME_LOCAL_OFFSET_NED = 7
+            0xFFF8,                         # type_mask                 : Only x/y/z valid
+            0,                              # x                         : X Position in NED frame in meters (float)
+            0,                              # y                         : Y Position in NED frame in meters (float)
+            -altitudeChange,                # z                         : Z Position in NED frame in meters (float)
+            0,                              # vx                        : X velocity in NED frame in meter / s (float)
+            0,                              # vy                        : Y velocity in NED frame in meter / s (float)
+            0,                              # vz                        : Z velocity in NED frame in meter / s (float)
+            0,                              # afx
+            0,                              # afy
+            0,                              # afz
+            0,                              # yaw                       : yaw setpoint in rad (float)
+            0                               # yaw_rate                  : yaw rate setpoint in rad/s (float)
+        )
 
     def paramNameRemapMajorVersionMap(self):
         return self._remapParamName

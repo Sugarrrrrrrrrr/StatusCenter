@@ -5,6 +5,7 @@ from display.scMapWidget import scMap
 from Vehicle import Vehicle
 from FirmwarePlugin import ArduCopterFirmwarePlugin
 import sys
+from math import radians, cos, sin, asin, sqrt
 
 
 class scMainWindow(QWidget):
@@ -12,6 +13,7 @@ class scMainWindow(QWidget):
         super().__init__(parent=parent)
         self._app = app
         self.setWindowTitle('SC')
+        self.m = 8.993216059187306e-06
 
         self.paraWidgets = QTabWidget(self)
         self.paraWidgets.setFixedSize(214, 616)
@@ -223,12 +225,14 @@ class ParaWidget(QWidget):
 
         @pyqtSlot()
         def _handle_button_up_clicked():
-            print('_handle_button_up_clicked')
+            firmwarePlugin = self.vehicle.firmwarePlugin()  # type: ArduCopterFirmwarePlugin
+            firmwarePlugin.guidedModeChangeAltitude(self.vehicle, 5)
         self.button_up.clicked.connect(_handle_button_up_clicked)
 
         @pyqtSlot()
         def _handle_button_down_clicked():
-            print('_handle_button_down_clicked')
+            firmwarePlugin = self.vehicle.firmwarePlugin()  # type: ArduCopterFirmwarePlugin
+            firmwarePlugin.guidedModeChangeAltitude(self.vehicle, -5)
         self.button_down.clicked.connect(_handle_button_down_clicked)
 
 class test(QObject):
@@ -242,6 +246,23 @@ class test(QObject):
     altChanged = pyqtSignal(float)
     battery_remaining_Changed = pyqtSignal(int)
     attitudeChanged = pyqtSignal(float, float, float)
+
+
+def haversine(lon1, lat1, lon2, lat2):  # 经度1，纬度1，经度2，纬度2 （十进制度数）
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    # 将十进制度数转化为弧度
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+    # haversine公式
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * asin(sqrt(a))
+    r = 6371  # 地球平均半径，单位为公里
+    return c * r * 1000
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

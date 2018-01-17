@@ -36,6 +36,7 @@ class TransactionType(Enum):
 
 class MissionManager(QObject):
     def __init__(self, vehicle):
+        super().__init__()
         self._vehicle = vehicle  # type: Vehicle
         self._mav = self._vehicle.getMav()
         self._ackTimeoutTimer = None  # type: QTimer
@@ -63,8 +64,9 @@ class MissionManager(QObject):
         # QMutex _dataMutex;
 
         # connect(_vehicle, &Vehicle::mavlinkMessageReceived, this, &MissionManager::_mavlinkMessageReceived);
+        self._vehicle.mavlinkMessageReceived.connect(self._mavlinkMessageReceived)
 
-        self._ackTimeoutTimer = QTimer(self)
+        self._ackTimeoutTimer = QTimer()
         self._ackTimeoutTimer.setSingleShot(True)
         self._ackTimeoutTimer.setInterval(self._ackTimeoutMilliseconds)
 
