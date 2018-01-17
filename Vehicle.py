@@ -97,6 +97,9 @@ class Vehicle(QObject):
     flightModeChanged = pyqtSignal(str)
 
     positionChanged = pyqtSignal(str, float, float)
+    altChanged = pyqtSignal(float)
+    battery_remaining_Changed = pyqtSignal(int)
+    attitudeChanged = pyqtSignal(float, float, float)
 
     @pyqtSlot(object)
     def _mavlinkMessageReceived(self, msg: MAVLink_message):
@@ -152,6 +155,7 @@ class Vehicle(QObject):
                 self._battery_remaining = None
             elif 0 <= sysStatus.battery_remaining <= 100:
                 self._battery_remaining = sysStatus.battery_remaining
+                self.battery_remaining_Changed.emit(self._battery_remaining)
             else:
                 print('ERROR: battery remaining error %d' % sysStatus.battery_remaining)
 
@@ -166,6 +170,7 @@ class Vehicle(QObject):
             self.alt = msg.alt / 1000
 
             self.positionChanged.emit(self.vehicle_name, self.lat, self.lng)
+            self.altChanged.emit(self.alt)
 
         def _handle_ATTITUDE():
             attitude = msg                                                  # type: MAVLink_attitude_message
@@ -177,6 +182,7 @@ class Vehicle(QObject):
             if yaw < 0:
                 yaw += 360
             self._heading = yaw
+            self.attitudeChanged.emit(self._pitch, self._roll, self._heading)
 
 
         def _handle_VFR_HUD():
@@ -328,14 +334,13 @@ class Vehicle(QObject):
                 newBaseMode,                # base_mode
                 custom_mode                 # custom_mode
             )
-
         else:
             # qWarning() << "FirmwarePlugin::setFlightMode failed, flightMode:" << flightMode;
             pass
 
 
 # send message
-    def sendHearbet(self):
+    def sendHeartbeat(self):
         self._mav.mav.heartbeat_send(
             6,              # type              MAV_TYPE_GCS                6
             8,              # autopilot         MAV_AUTOPILOT_INVALID       8

@@ -818,7 +818,7 @@ class ArduCopterFirmwarePlugin(APMFirmwarePlugin):
             # qgcApp()->showMessage(tr("Unable to takeoff: Vehicle failed to arm."));
             return False
 
-        vehicle.sendMavCommand(self._defaultComponentId,
+        vehicle.sendMavCommand(vehicle.defaultComponentId(),
                                22,                      # MAV_CMD_NAV_TAKEOFF
                                True,
                                0, 0, 0, 0, 0, 0,

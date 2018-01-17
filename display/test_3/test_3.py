@@ -14,3 +14,4 @@ class bridge(QObject):
 
 class Dialog(QDialog):
     def __init__(self):
+        pass

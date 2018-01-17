@@ -134,6 +134,7 @@ class MultiVehicleManager(scToolbox):
         # connect(vehicle, &Vehicle::allLinksInactive, this, &MultiVehicleManager::_deleteVehiclePhase1);
         # connect(vehicle->parameterManager(), &ParameterManager::parametersReadyChanged,
         #                                               this, &MultiVehicleManager::_vehicleParametersReadyChanged);
+        self.app.mainWindow.add_para_widget(vehicle)
         self._vehicles.append(vehicle)
         self._sendGCSHeartbeat(vehicle)
         self.vehicleAdded.emit(vehicle)
@@ -156,10 +157,10 @@ class MultiVehicleManager(scToolbox):
 
     def _sendGCSHeartbeat(self, vehicle=None):
         if vehicle:     # Send a heartbeat out on the link of vehicle
-            vehicle.sendHearbet()
+            vehicle.sendHeartbeat()
         else:           # Send a heartbeat out on each link
             for vehicle in self._vehicles:
-                vehicle.sendHearbet()
+                vehicle.sendHeartbeat()
 
     def gcsHeartbeatEnabled(self):
         return self._gcsHeartbeatEnabled
