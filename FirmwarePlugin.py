@@ -1,5 +1,6 @@
 from PyQt5.QtCore import QObject, QThread
 from PyQt5.QtPositioning import QGeoCoordinate
+from PyQt5.QtWidgets import QApplication
 
 from typing import List
 
@@ -364,7 +365,7 @@ class FirmwarePlugin(QObject):
                     armed_changed = True
                     break
                 q_thread.msleep(100)
-                # qgcApp()->processEvents(QEventLoop::ExcludeUserInputEvents);
+                QApplication.processEvents()        # QEventLoop::ExcludeUserInputEvents
             if armed_changed:
                 break
         return armed_changed
@@ -385,7 +386,7 @@ class FirmwarePlugin(QObject):
                     flight_mode_changed = True
                     break
                 q_thread.msleep(100)
-                # qgcApp()->processEvents(QEventLoop::ExcludeUserInputEvents);
+                QApplication.processEvents()    # QEventLoop::ExcludeUserInputEvents
             if flight_mode_changed:
                 break
         return flight_mode_changed
@@ -822,7 +823,7 @@ class ArduCopterFirmwarePlugin(APMFirmwarePlugin):
                         didTakeoff = True
                         break
                     q_thread.msleep(100)
-                    # qgcApp()->processEvents(QEventLoop::ExcludeUserInputEvents)
+                    QApplication.processEvents()    # QEventLoop::ExcludeUserInputEvents
                 if not didTakeoff:
                     # qgcApp()->showMessage(QStringLiteral("Unable to start mission. Vehicle takeoff failed."))
                     return

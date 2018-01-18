@@ -104,7 +104,7 @@ class MissionManager(QObject):
 
         self._retryCount = 0
         self._transactionInProgress = TransactionType.TransactionRead
-        self.inProgressChanged.emit()
+        self.inProgressChanged.emit(True)
         self._requestList()
 
     # Writes the specified set of mission items to the vehicle
@@ -182,7 +182,6 @@ class MissionManager(QObject):
             gotoCoord.longitude(),  # y
             gotoCoord.altitude()  # z
         )
-
         self._startAckTimeout(AckType.AckGuidedItem)
         self.inProgressChanged.emit(True)
 
@@ -312,7 +311,8 @@ class MissionManager(QObject):
 
         def _handleAckGuidedItemTimeout():
             # MISSION_REQUEST is expected, or MISSION_ACK to end sequence
-            pass
+            self._finishTransaction(False)
+            print('AckGuidedItemTimeout')
 
         def _handleDefaultTimeout():
             self._sendError(ErrorCode.VehicleError, "Vehicle did not respond to mission item communication: %s"
@@ -746,10 +746,10 @@ class MissionManager(QObject):
             else:
                 # Write failed, throw out the write list
                 self._clearAndDeleteMissionItems()
-                self.sendComplete(not success)
+                self.sendComplete.emit(not success)
 
         def _handleTransactionRemoveAll():
-            self.removeAllComplete(not success)
+            self.removeAllComplete.emit(not success)
 
         switcher = {
             TransactionType.TransactionRead:        _handleTransactionRead,
@@ -798,7 +798,7 @@ class MissionManager(QObject):
 
         self._transactionInProgress = TransactionType.TransactionWrite
         self._retryCount = 0
-        self.inProgressChanged(True)
+        self.inProgressChanged.emit(True)
         self._writeMissionCount()
 
     def _clearAndDeleteMissionItems(self):

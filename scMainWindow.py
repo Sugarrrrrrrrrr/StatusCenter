@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QApplication, QTabWidget, QHBoxLayout, QVBoxLayout, QGridLayout, QLabel, \
     QPushButton
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, Qt
+from PyQt5.QtPositioning import QGeoCoordinate
 from display.scMapWidget import scMap
 from Vehicle import Vehicle
 from FirmwarePlugin import ArduCopterFirmwarePlugin
@@ -13,7 +14,6 @@ class scMainWindow(QWidget):
         super().__init__(parent=parent)
         self._app = app
         self.setWindowTitle('SC')
-        self.m = 8.993216059187306e-06
 
         self.paraWidgets = QTabWidget(self)
         self.paraWidgets.setFixedSize(214, 616)
@@ -37,6 +37,7 @@ class ParaWidget(QWidget):
     def __init__(self, parent=None, vehicle=None):
         super().__init__(parent=parent)
         self.vehicle = vehicle                  # type: Vehicle
+        self.m = 8.993216059187306e-06          # about 1m
         self.layout = QVBoxLayout()
 
         # top
@@ -205,22 +206,46 @@ class ParaWidget(QWidget):
 
         @pyqtSlot()
         def _handle_button_forward_clicked():
-            print('_handle_button_forward_clicked')
+            if self.vehicle.lat is None or self.vehicle.lng is None or \
+                    (self.vehicle.lat == 0 and self.vehicle.lng == 0):
+                print('can not get current position')
+                return
+            gotoCoord = QGeoCoordinate(self.vehicle.lat + 5 * self.m, self.vehicle.lng, 5)
+            firmwarePlugin = self.vehicle.firmwarePlugin()  # type: ArduCopterFirmwarePlugin
+            firmwarePlugin.guidedModeGotoLocation(self.vehicle, gotoCoord)
         self.button_forward.clicked.connect(_handle_button_forward_clicked)
 
         @pyqtSlot()
         def _handle_button_left_clicked():
-            print('_handle_button_left_clicked')
+            if self.vehicle.lat is None or self.vehicle.lng is None or \
+                    (self.vehicle.lat == 0 and self.vehicle.lng == 0):
+                print('can not get current position')
+                return
+            gotoCoord = QGeoCoordinate(self.vehicle.lat, self.vehicle.lng - 5 * self.m, 5)
+            firmwarePlugin = self.vehicle.firmwarePlugin()  # type: ArduCopterFirmwarePlugin
+            firmwarePlugin.guidedModeGotoLocation(self.vehicle, gotoCoord)
         self.button_left.clicked.connect(_handle_button_left_clicked)
 
         @pyqtSlot()
         def _handle_button_right_clicked():
-            print('_handle_button_right_clicked')
+            if self.vehicle.lat is None or self.vehicle.lng is None or \
+                    (self.vehicle.lat == 0 and self.vehicle.lng == 0):
+                print('can not get current position')
+                return
+            gotoCoord = QGeoCoordinate(self.vehicle.lat, self.vehicle.lng + 5 * self.m, 5)
+            firmwarePlugin = self.vehicle.firmwarePlugin()  # type: ArduCopterFirmwarePlugin
+            firmwarePlugin.guidedModeGotoLocation(self.vehicle, gotoCoord)
         self.button_right.clicked.connect(_handle_button_right_clicked)
 
         @pyqtSlot()
         def _handle_button_backward_clicked():
-            print('_handle_button_backward_clicked')
+            if self.vehicle.lat is None or self.vehicle.lng is None or \
+                    (self.vehicle.lat == 0 and self.vehicle.lng == 0):
+                print('can not get current position')
+                return
+            gotoCoord = QGeoCoordinate(self.vehicle.lat - 5 * self.m, self.vehicle.lng, 5)
+            firmwarePlugin = self.vehicle.firmwarePlugin()  # type: ArduCopterFirmwarePlugin
+            firmwarePlugin.guidedModeGotoLocation(self.vehicle, gotoCoord)
         self.button_backward.clicked.connect(_handle_button_backward_clicked)
 
         @pyqtSlot()
