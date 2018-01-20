@@ -832,7 +832,7 @@ class ArduCopterFirmwarePlugin(APMFirmwarePlugin):
             return
 
     def _guidedModeTakeoff(self, vehicle):
-        takeoffAlt = 500
+        takeoffAlt = 250
 
         if takeoffAlt <= 0:
             takeoffAlt = 2.5
@@ -841,10 +841,12 @@ class ArduCopterFirmwarePlugin(APMFirmwarePlugin):
 
         if not self._setFlightModeAndValidate(vehicle, "Guided"):
             # qgcApp()->showMessage(tr("Unable to takeoff: Vehicle failed to change to Guided mode."));
+            print('set Guided mode fail when try to _guidedModeTakeoff')
             return False
 
         if not self._armVehicleAndValidate(vehicle):
             # qgcApp()->showMessage(tr("Unable to takeoff: Vehicle failed to arm."));
+            print('set Armed fail when try to _guidedModeTakeoff')
             return False
 
         vehicle.sendMavCommand(vehicle.defaultComponentId(),

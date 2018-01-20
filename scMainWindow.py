@@ -260,19 +260,19 @@ class ParaWidget(QWidget):
         @pyqtSlot()
         def _handle_button_up_clicked():
             firmwarePlugin = self.vehicle.firmwarePlugin()  # type: ArduCopterFirmwarePlugin
-            firmwarePlugin.guidedModeChangeAltitude(self.vehicle, 5)
+            firmwarePlugin.guidedModeChangeAltitude(self.vehicle, 1.5)
         self.button_up.clicked.connect(_handle_button_up_clicked)
 
         @pyqtSlot()
         def _handle_button_down_clicked():
             firmwarePlugin = self.vehicle.firmwarePlugin()  # type: ArduCopterFirmwarePlugin
-            firmwarePlugin.guidedModeChangeAltitude(self.vehicle, -5)
+            firmwarePlugin.guidedModeChangeAltitude(self.vehicle, -1.5)
         self.button_down.clicked.connect(_handle_button_down_clicked)
 
         @pyqtSlot()
         def _handle_button_test1_clicked():
             print('button_test1_clicked')
-            # l = read_mission_items_file('C:/Users/ZhangYS/Desktop/waypoints_file.waypoints')
+            # l = read_mission_items_file('C:/Users/ZhangYS/Desktop/waypoints_file_read.txt')
             # self.vehicle.missionManager().writeMissionItems(l)
         self.button_test1.clicked.connect(_handle_button_test1_clicked)
 
@@ -287,7 +287,7 @@ class ParaWidget(QWidget):
         def _handle_button_test3_clicked():
             print('button_test3_clicked')
             l = []
-            write_mission_items_file(l, 'C:/Users/ZhangYS/Desktop/waypoints_file_write.waypoints')
+            write_mission_items_file(l, 'C:/Users/ZhangYS/Desktop/waypoints_file_write.txt')
         self.button_test3.clicked.connect(_handle_button_test3_clicked)
 
 class test(QObject):
