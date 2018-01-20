@@ -47,14 +47,14 @@ if __name__ == '__main__':
         n2 = 100
         if i % n1 == 0:
             m1 = msg_x_y(m, i*5, i*5)
-            us.send(m1.pack(mf.mav), '192.168.42.128')
+            us.send(m1.pack(mf.mav), '192.168.113.131')
             
             m2 = msg_x_y(m, -i*5-100, -i*5)
-            us.send(m2.pack(mf.mav), '192.168.42.255')
+            us.send(m2.pack(mf.mav), '192.168.113.255')
             print(i/n1)
         if i % n2 == 0:
-            us.send(b_heartbeat, '192.168.42.128')
-            us.send(b_heartbeat, '192.168.42.255')
+            us.send(b_heartbeat, '192.168.113.131')
+            us.send(b_heartbeat, '192.168.113.255')
 
     #for i in range(100):
     #    udp_send(str(time.time()).encode('utf-8'))

@@ -72,6 +72,8 @@ class LinkInterface(QThread):
         #
         while True:
             msg = self.mav.recv_msg()
+            if not msg:
+                continue
             self.message_recieved += 1
 
             # # # # #

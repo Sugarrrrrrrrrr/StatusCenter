@@ -113,11 +113,9 @@ class MissionManager(QObject):
     def writeMissionItems(self, missionItems: List[MissionItem]):
         # if _vehicle.isOfflineEditingVehicle():
         #     return
-
         if self.inProgress():
             # qCDebug(MissionManagerLog) << "writeMissionItems called while transaction in progress";
             return
-
         self._clearAndDeleteWriteMissionItems()
 
         # bool skipFirstItem = !_vehicle->firmwarePlugin()->sendHomePositionToVehicle();
@@ -127,7 +125,7 @@ class MissionManager(QObject):
 
         for i in range(firstIndex, len(missionItems)):
             item = missionItems[i]
-            self._writeMissonItems.append(item)
+            self._writeMissionItems.append(item)
 
             item.setIsCurrentItem(i == firstIndex)
 
@@ -136,7 +134,6 @@ class MissionManager(QObject):
                 item.setSequenceNumber(item.sequenceNumber() - 1)
                 if item.command() == 177:  # MAV_CMD_DO_JUMP 177
                     item.setParam1(int(item.param1()) - 1)
-
         self._writeMissionItemsWorker()
 
     # Writes the specified set mission items to the vehicle as an ArduPilot guided mode mission item.
@@ -213,7 +210,7 @@ class MissionManager(QObject):
         def wirteHere():
             pass
 
-    _ackTimeoutMilliseconds = 1000
+    _ackTimeoutMilliseconds = 2000          # 1000 for default
     _maxRetryCount = 5
 
     # signals:
@@ -469,7 +466,6 @@ class MissionManager(QObject):
         missionRequest = message
         if not self._checkForExpectedAck(AckType.AckMissionRequest):
             return
-
         # qCDebug(MissionManagerLog) << "_handleMissionRequest sequenceNumber" << missionRequest.seq;
 
         if missionRequest.seq > len(self._writeMissionItems) - 1:
@@ -536,6 +532,10 @@ class MissionManager(QObject):
         # Save the retry ack before calling _checkForExpectedAck since we'll need it to determine what type of a
         #       protocol sequence we are in.
         savedExpectedAck = self._expectedAck
+
+        if not self._itemIndicesToWrite and self._checkForExpectedAck(AckType.AckMissionRequest):
+            self._finishTransaction(True)
+            print('mission accept')
 
         # We can get a MISSION_ACK with an error at any time, so if the Acks don't match it is not a protocol sequence
         #       error. Call _checkForExpectedAck with _retryAck so it will succeed no matter what.
@@ -828,6 +828,7 @@ class MissionManager(QObject):
                 13: ". Sequence: %s" % item.sequenceNumber()    # MAV_MISSION_INVALID_SEQUENCE      13
             }
             return switcher.get(result, '')
+        return ''
 
     def _removeAllWorker(self):
         # qCDebug(MissionManagerLog) << "_removeAllWorker";

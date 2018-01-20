@@ -2,7 +2,7 @@ from PyQt5.QtCore import QObject
 
 class MissionItem(QObject):
     def __init__(self, item=None, parent=None):
-        super.__init__(parent=parent)
+        super().__init__(parent=parent)
         self.parent = parent
         self.item_recieved = None
         self._doJumpId = -1
@@ -199,6 +199,7 @@ def write_mission_items_file(mission_items, file_name):
 if __name__ == '__main__':
     l = read_mission_items_file('waypoints_file.waypoints')
     write_mission_items_file(l, 'waypoints_file_write.waypoints')
+    print(l)
 
 
 

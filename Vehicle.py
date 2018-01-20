@@ -1,10 +1,12 @@
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QTimer, QEventLoop
 from PyQt5.QtPositioning import QGeoCoordinate
 from parse.dialects.v10.ardupilotmega import MAVLink_message, MAVLink_heartbeat_message, MAVLink_home_position_message,\
-    MAVLink_sys_status_message, MAVLink_autopilot_version_message, MAVLink_vfr_hud_message, MAVLink_attitude_message
+    MAVLink_sys_status_message, MAVLink_autopilot_version_message, MAVLink_vfr_hud_message, MAVLink_attitude_message, \
+    MAVLink_command_ack_message
 from parse.mavutil import mavfile
 from LinkInterface import LinkInterface
 from MissionManager.MissionManager import MissionManager
+from PyQt5.QtWidgets import QApplication
 
 
 class Vehicle(QObject):
@@ -106,6 +108,10 @@ class Vehicle(QObject):
 
     @pyqtSlot(object)
     def _mavlinkMessageReceived(self, msg: MAVLink_message):
+        if not msg:
+            print('None')
+            return
+        # print(msg)
         msgType = msg.get_type()
 
         def _handle_Heardbeat():
@@ -195,6 +201,19 @@ class Vehicle(QObject):
             self._climbRate = vfrHud.climb
             self._heading = vfrHud.heading
 
+        def _handle_COMMAND_ACK():
+            showError = False
+            ack = msg               # type: MAVLink_command_ack_message
+
+            if len(self._mavCommandQueue) and ack.command == self._mavCommandQueue[0].command:
+                self._mavCommandAckTimer.stop()
+                # showError = self._mavCommandQueue[0].showError
+                self._mavCommandQueue.pop(0)
+
+            # emit mavCommandResult(_id, message.compid, ack.command, ack.result, false /* noResponsefromVehicle */);
+            # switch(showError)
+            self._sendNextQueuedMavCommand()
+
         def _handle_AUTOPILOT_VERSION():
             autopilotVersion = msg                                          # type: MAVLink_autopilot_version_message
             # _startPlanRequest
@@ -215,13 +234,15 @@ class Vehicle(QObject):
             'GPS_RAW_INT':          _handle_GPS_RAW_INT,                    # #24
             'ATTITUDE':             _handle_ATTITUDE,                       # #30
             'VFR_HUD':              _handle_VFR_HUD,                        # #74
+            'COMMAND_ACK':          _handle_COMMAND_ACK,                    # #77
             'AUTOPILOT_VERSION':    _handle_AUTOPILOT_VERSION,              # #148
             'HOME_POSITION':        _handle_Home_Position,                  # #242
         }
         switcher.get(msgType, _handleDefault)()
 
         self.mavlinkMessageReceived.emit(msg)
-
+        QApplication.processEvents(QEventLoop.ExcludeUserInputEvents)
+        
     def _setHomePosition(self, homeCoord):
         if homeCoord != self._homePosition:
             self._homePosition = homeCoord
@@ -316,6 +337,7 @@ class Vehicle(QObject):
                             400,                        # MAV_CMD_COMPONENT_ARM_DISARM
                             True,                       # show error if fails
                             1 if armed else 0)
+        # print('setArmed', armed)
 
     def flightModeSetAvailable(self):
         return self._firmwarePlugin.isCapable(self, 1 << 0)     # SetFlightModeCapability
@@ -437,7 +459,7 @@ class Vehicle(QObject):
                 if self.px4Firmware():
                     pass
                 else:
-                    if queuedCommand['command'] != 500:     #MAV_CMD_START_RX_PAIR
+                    if queuedCommand['command'] == 500:     # MAV_CMD_START_RX_PAIR
                         # The implementation of this command comes from the IO layer and is shared across stacks. So
                         # for other firmwares we aren't really sure whether they are correct or not.
                         return

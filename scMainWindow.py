@@ -5,6 +5,7 @@ from PyQt5.QtPositioning import QGeoCoordinate
 from display.scMapWidget import scMap
 from Vehicle import Vehicle
 from FirmwarePlugin import ArduCopterFirmwarePlugin
+from MissionManager.MissionItem import read_mission_items_file, write_mission_items_file
 import sys
 from math import radians, cos, sin, asin, sqrt
 
@@ -117,6 +118,13 @@ class ParaWidget(QWidget):
         self.button_down = QPushButton('down', self)
         self.bottom_layout.addWidget(self.button_down, 5, 1, 1, 1)
 
+        self.button_test1 = QPushButton('test1', self)
+        self.bottom_layout.addWidget(self.button_test1, 6, 0, 1, 1)
+        self.button_test2 = QPushButton('test2', self)
+        self.bottom_layout.addWidget(self.button_test2, 6, 1, 1, 1)
+        self.button_test3 = QPushButton('test3', self)
+        self.bottom_layout.addWidget(self.button_test3, 6, 2, 1, 1)
+
         self.bottom_widget.setLayout(self.bottom_layout)
 
         # layout
@@ -127,6 +135,7 @@ class ParaWidget(QWidget):
         if self.vehicle:
             self.signals_dealing()
             self.actions_dealing()
+            pass
 
     def signals_dealing(self):
 
@@ -259,6 +268,27 @@ class ParaWidget(QWidget):
             firmwarePlugin = self.vehicle.firmwarePlugin()  # type: ArduCopterFirmwarePlugin
             firmwarePlugin.guidedModeChangeAltitude(self.vehicle, -5)
         self.button_down.clicked.connect(_handle_button_down_clicked)
+
+        @pyqtSlot()
+        def _handle_button_test1_clicked():
+            print('button_test1_clicked')
+            # l = read_mission_items_file('C:/Users/ZhangYS/Desktop/waypoints_file.waypoints')
+            # self.vehicle.missionManager().writeMissionItems(l)
+        self.button_test1.clicked.connect(_handle_button_test1_clicked)
+
+        @pyqtSlot()
+        def _handle_button_test2_clicked():
+            print('button_test2_clicked')
+            print(self.vehicle.missionManager()._expectedAck)
+            print(self.vehicle.missionManager()._transactionInProgress)
+        self.button_test2.clicked.connect(_handle_button_test2_clicked)
+
+        @pyqtSlot()
+        def _handle_button_test3_clicked():
+            print('button_test3_clicked')
+            l = []
+            write_mission_items_file(l, 'C:/Users/ZhangYS/Desktop/waypoints_file_write.waypoints')
+        self.button_test3.clicked.connect(_handle_button_test3_clicked)
 
 class test(QObject):
     def __init__(self):
