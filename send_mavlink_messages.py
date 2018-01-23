@@ -47,13 +47,13 @@ if __name__ == '__main__':
         n2 = 100
         if i % n1 == 0:
             m1 = msg_x_y(m, i*5, i*5)
-            us.send(m1.pack(mf.mav), '192.168.113.131')
+            us.send(m1.pack(mf.mav), '192.168.113.130')
             
             m2 = msg_x_y(m, -i*5-100, -i*5)
             us.send(m2.pack(mf.mav), '192.168.113.255')
             print(i/n1)
         if i % n2 == 0:
-            us.send(b_heartbeat, '192.168.113.131')
+            us.send(b_heartbeat, '192.168.113.130')
             us.send(b_heartbeat, '192.168.113.255')
 
     #for i in range(100):
