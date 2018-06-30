@@ -202,11 +202,13 @@ class Vehicle(QObject):
             self._heading = vfrHud.heading
 
         def _handle_COMMAND_ACK():
-            return
+            
             showError = False
             ack = msg               # type: MAVLink_command_ack_message
+            # print(self._mavCommandQueue[0], ack.command)
+            # return
 
-            if len(self._mavCommandQueue) and ack.command == self._mavCommandQueue[0].command:
+            if len(self._mavCommandQueue) and ack.command == self._mavCommandQueue[0]['command']:
                 self._mavCommandAckTimer.stop()
                 # showError = self._mavCommandQueue[0].showError
                 self._mavCommandQueue.pop(0)

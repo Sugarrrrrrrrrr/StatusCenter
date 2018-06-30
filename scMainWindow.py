@@ -272,15 +272,14 @@ class ParaWidget(QWidget):
         @pyqtSlot()
         def _handle_button_test1_clicked():
             print('button_test1_clicked')
-            # l = read_mission_items_file('C:/Users/ZhangYS/Desktop/waypoints_file_read.txt')
-            # self.vehicle.missionManager().writeMissionItems(l)
+            l = read_mission_items_file('C:/Users/ZhangYS/Desktop/auto_3.waypoints')
+            self.vehicle.missionManager().writeMissionItems(l)
         self.button_test1.clicked.connect(_handle_button_test1_clicked)
 
         @pyqtSlot()
         def _handle_button_test2_clicked():
             print('button_test2_clicked')
-            print(self.vehicle.missionManager()._expectedAck)
-            print(self.vehicle.missionManager()._transactionInProgress)
+            print(self.vehicle.missionManager()._missionItems)
         self.button_test2.clicked.connect(_handle_button_test2_clicked)
 
         @pyqtSlot()
